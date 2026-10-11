@@ -1,0 +1,11 @@
+# Set default behavior to automatically normalize line endings.
+* text=auto
+
+# Python: keep line endings consistent, diff sanely
+*.py text diff=python
+*.pyi text diff=python
+
+# Image files are binary
+*.png binary
+*.jpg binary
+*.gif binary
