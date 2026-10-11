@@ -13,10 +13,15 @@ def find_second_largest(numbers: list[int]) -> int:
     Raises:
         ValueError: If numbers is None or has fewer than two distinct values.
     """
+
     if numbers is None:
         raise ValueError("numbers must not be None")
+
+    # Track the two best distinct values seen so far.
     largest: int | None = None
     second: int | None = None
+
+    # Single pass: promote on a new max, else update the runner-up.
     for value in numbers:
         if value == largest:
             continue
@@ -24,6 +29,8 @@ def find_second_largest(numbers: list[int]) -> int:
             second, largest = largest, value
         elif second is None or value > second:
             second = value
+
     if second is None:
         raise ValueError("Need at least two distinct values.")
+
     return second

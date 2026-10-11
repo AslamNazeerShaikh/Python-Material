@@ -15,7 +15,11 @@ def find_second_largest_builtin(numbers: list[int]) -> int:
     """
     if numbers is None:
         raise ValueError("numbers must not be None")
+
+    # Deduplicate, then rank highest first.
     distinct = sorted(set(numbers), reverse=True)
+
     if len(distinct) < 2:
         raise ValueError("Need at least two distinct values.")
+
     return distinct[1]

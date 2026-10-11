@@ -15,8 +15,13 @@ def count_unique_vowels(word: str) -> int:
     """
     if word is None:
         raise ValueError("word must not be None")
+
+    # Collect each vowel once; case does not matter.
     seen: set[str] = set()
+
+    # Scan once, keeping only a/e/i/o/u.
     for char in word.lower():
         if char in "aeiou":
             seen.add(char)
+
     return len(seen)

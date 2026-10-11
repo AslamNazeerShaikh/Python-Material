@@ -15,4 +15,5 @@ def count_unique_vowels_builtin(word: str) -> int:
     """
     if word is None:
         raise ValueError("word must not be None")
+
     return len({char for char in word.lower() if char in "aeiou"})

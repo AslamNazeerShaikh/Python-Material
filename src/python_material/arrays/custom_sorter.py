@@ -20,7 +20,11 @@ def sort_with_bubble_sort(
     """
     if values is None:
         raise ValueError("values must not be None")
+
+    # Work on a copy so the caller's list is never mutated.
     items = list(values)
+
+    # Bubble the largest unsorted value to its slot each pass.
     for end in range(len(items) - 1, 0, -1):
         for i in range(end):
             out_of_order = (
@@ -30,6 +34,7 @@ def sort_with_bubble_sort(
             )
             if out_of_order:
                 items[i], items[i + 1] = items[i + 1], items[i]
+
     return items
 
 
@@ -50,4 +55,5 @@ def sort_with_builtin(
     """
     if values is None:
         raise ValueError("values must not be None")
+
     return sorted(values, reverse=direction == SortDirection.DESCENDING)
