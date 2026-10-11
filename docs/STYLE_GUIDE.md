@@ -11,6 +11,7 @@ it cites the section below (e.g. `STYLE_GUIDE §4 imports`).
 2. [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html) — strictest deltas adopted (§2–§3).
 3. [IST Guide of Best Practices for Python (gist)](https://gist.github.com/ruimaranhao/4e18cbe3dad6f68040c32ed6709090a3) — naming, equality, comprehensions, imports, docs.
 4. [Best Python Coding Practices — clean & efficient code (Medium)](https://medium.com/@utkarshshukla.author/best-python-coding-practices-writing-clean-and-efficient-code-4784946a17d0) — constants, globals, venv, tests.
+5. [Ruff Formatter docs — Style Guide, f-string Line breaks](https://docs.astral.sh/ruff/formatter/) — Black-stable-compatible formatting authority; this repo follows it verbatim (`ruff format` is the enforcer, not a suggester).
 
 > Consistency within one module/function matters most; consistency within this
 > repo beats any single external guide; PEP 8 wins only when the repo has no rule.
@@ -21,7 +22,7 @@ it cites the section below (e.g. `STYLE_GUIDE §4 imports`).
 
 | # | Gate (metric) | Rule | Source |
 |---|---|---|---|
-| G0 | Format clean | `ruff format --check .` passes (88-col, double quotes, 4-space) | PEP 8 + Google §3.2/§3.4 |
+| G0 | Format clean | `ruff format --check .` passes (88-col, double quotes, 4-space; Ruff Formatter Style Guide + f-string Line breaks, §1.5) | PEP 8 + Google §3.2/§3.4 + Ruff formatter |
 | G1 | Lint clean | `ruff check .` passes (E/F/W/I/UP/B/C4/SIM) | PEP 8 + Google §2.1 |
 | G2 | Types declared | `mypy src` passes; all public signatures fully hinted | Google §2.21 |
 | G3 | Tests green | `pytest` passes; coverage ≥ 80% (`fail_under = 80`) | Medium §9 |
@@ -39,36 +40,82 @@ ruff check --fix . && ruff format . && mypy src && pytest
 ## §1 Layout & whitespace
 
 1. **Indent 4 spaces, never tabs.** Continuation lines: align with the opening
-   delimiter, or use a 4-space hanging indent with nothing on the first line.
-   (PEP 8; Google §3.4; IST "be consistent".)
-   ```python
-   # Correct.
-   total = long_function_name(var_one, var_two, var_three, var_four)
-   total = long_function_name(
-       var_one, var_two, var_three, var_four
-   )
-   ```
-2. **Max line length 88** (Black/Ruff-compatible; PEP 8 allows 79–99 by team
-   agreement — this repo fixes **88**). Docstrings/comments wrap at 72 where
-   practical. Break lines with implicit continuation (parentheses), never
-   backslashes. Break before binary operators (Knuth style), consistently.
-   ```python
-   # Correct.
-   income = (
-       gross_wages
-       + taxable_interest
-       - ira_deduction
-   )
-   ```
-3. **Blank lines:** two between top-level functions/classes; one between methods
-   and after a class docstring; none directly after a `def` line; single blanks
-   sparingly inside functions to mark logical sections. (PEP 8; Google §3.5.)
-4. **No trailing whitespace. No semicolons.** One statement per line; `if/for/while`
-   with bodies go on separate lines. (PEP 8; Google §3.1.)
-5. **File encoding UTF-8, no declaration.** ASCII-only identifiers, English words.
-   (PEP 8.)
-6. **Shebang** `#!/usr/bin/env python3` only on files meant to be executed
-   directly (e.g. `demos/main.py`). (Google §3.7.)
+    delimiter, or use a 4-space hanging indent with nothing on the first line.
+    (PEP 8; Google §3.4; IST "be consistent".)
+    ```python
+    # Correct.
+    total = long_function_name(var_one, var_two, var_three, var_four)
+    total = long_function_name(
+        var_one, var_two, var_three, var_four
+    )
+    ```
+2. **Max line length 88**, enforced by `ruff format` (`line-length = 88` in
+    `pyproject.toml`), which implements the Black stable style per the
+    [Ruff Formatter Style Guide](https://docs.astral.sh/ruff/formatter/#style-guide).
+    Docstrings/comments wrap at 72 where practical. (PEP 8; Google §3.2/§3.4.)
+    ```python
+    # Correct.
+    income = (
+        gross_wages
+        + taxable_interest
+        - ira_deduction
+    )
+    ```
+3. **Blank lines at module level:** two between top-level functions/classes;
+    one between methods and after a class docstring; none directly after a
+    `def` line. (PEP 8; Google §3.5.)
+4. **Blank lines inside functions — logical-block separation (enforceable).**
+    Exactly one blank line between each logical step, in this order:
+    guard clause(s) → setup/init → main computation → post-check → return.
+    Consecutive lines with no blank line must read as one indivisible step;
+    if you would say "then…" in a review, it needs a blank line.
+    Never two blank lines inside a function; never a blank line that orphans
+    a lone `return`/`raise` from its condition. `ruff format` never inserts
+    these for you — the author must. (PEP 8 Blank Lines; Google §3.5.)
+    ```python
+    # Correct — each phase breathes.
+    if numbers is None:
+        raise ValueError("numbers must not be None")
+
+    largest: int | None = None
+    second: int | None = None
+
+    for value in numbers:
+        ...
+
+    if second is None:
+        raise ValueError("Need at least two distinct values.")
+
+    return second
+    ```
+5. **Line breaks — what `ruff format` will and will not do**
+    ([Style Guide](https://docs.astral.sh/ruff/formatter/#style-guide), incl.
+    [f-string Line breaks](https://docs.astral.sh/ruff/formatter/#line-breaks)).
+    Break with implicit continuation (parentheses/brackets/braces), never
+    backslashes; break before binary operators (Knuth style). A **magic
+    trailing comma** forces one-item-per-line explosion and the formatter
+    keeps it exploded; omit it to allow collapse. The formatter wraps what
+    it knows how to wrap (calls, collections, parenthesized expressions)
+    but makes only a best effort — a long string may still exceed 88
+    cols. That is expected; this repo ignores `E501`, never splits a
+    string blindly to chase the limit. **f-strings:** the formatter tidies
+    the `{...}` expression parts but splits them across lines **only if you
+    already put a line break inside the `{...}`** (Prettier-style heuristic
+    — Ruff cannot know where a natural-language sentence may break, so
+    your break is the signal). Multi-line `{...}` needs Python 3.12+
+    (PEP 701) while this repo targets 3.10, so keep f-strings on one line:
+    hoist the expression into a variable instead of splitting inside `{...}`.
+    ```python
+    # Correct — hoist, do not split inside {...} (target is py310).
+    total = sum(values)
+    message = f"total {total:,} items"
+    ```
+6. **No trailing whitespace. No semicolons.** One statement per line; `if/for/while`
+    with bodies go on separate lines. (PEP 8; Google §3.1.)
+7. **File encoding UTF-8, no declaration.** ASCII-only identifiers, English words.
+    (PEP 8.)
+8. **Shebang** `#!/usr/bin/env python3` only on files meant to be executed
+    directly (e.g. `demos/main.py`). (Google §3.7.)
 
 ## §2 Quotes & trailing commas
 
@@ -191,14 +238,53 @@ ruff check --fix . && ruff format . && mypy src && pytest
        ValueError: If fewer than two distinct values exist.
    """
    ```
-2. **Comments are complete sentences**, first word capitalized, `#` + one space.
-   Block comments indent with the code; inline comments need ≥ 2 spaces before
-   `#` and must add information (`x += 1  # Compensate for border`, never
-   `# Increment x`). Use sparingly — prefer small named functions over
-   explanatory comments (IST). Keep comments truthful: contradicting comments
-   are worse than none.
-3. **No `print()` in library code** — return values; `demos/` owns output.
-   (Repo rule.)
+2. **Block comments — the rulebook** (PEP 8 Comments; Google §3.8).
+    Every comment is a complete sentence: first word capitalized, `#` + one
+    space, ending period. Indent with the code it describes; separate
+    paragraphs with a bare `#` line. Comment the *why*, never a narration of
+    the *what* the code already says.
+    ```python
+    # Correct — explains the non-obvious reason.
+    # Equal values cannot promote the runner-up, so skip them early.
+    if value == largest:
+        continue
+    ```
+3. **Step comments — one per logical block** (§1.4 companion rule).
+    Any function with two or more logical blocks opens each non-obvious block
+    with a one-line `# <verb>….` comment stating that block's job
+    (guard / initialise / scan / validate / return). The comment plus the
+    blank lines around it must let a reader skim the function by reading
+    comments alone. Obvious single-guard clauses need no label; anything a
+    newcomer would pause on does. Prefer a small named helper over a paragraph
+    of explanation (IST).
+    ```python
+    # Correct — skim-able phases.
+    # Track the two best distinct values seen so far.
+    largest: int | None = None
+    second: int | None = None
+
+    # Single pass: promote on a new max, else update the runner-up.
+    for value in numbers:
+        ...
+    ```
+4. **Inline comments — rare and roomy** (PEP 8). At least two spaces
+    before `#`, one after; only when the line's intent is otherwise opaque,
+    and only to add information (`x += 1  # Compensate for border`, never
+    `# Increment x`). Keep them short; anything longer becomes a block/step
+    comment above the line.
+5. **TODOs — owned and traceable** (Google §3.8 style).
+    Format `# TODO(owner): action.` with a named owner and, where one exists,
+    a bug/issue link on the next line. No bare `# TODO` / `# FIXME` / `# XXX`
+    without an owner. TODOs describe future work, never excuse committed
+    dead code.
+    ```python
+    # TODO(aslam): support generators without materialising (issue #12).
+    ```
+6. **Never commit:** commented-out code (delete it — git remembers),
+    contradiction with the code (worse than no comment), noise comments that
+    restate the line, or author/date signatures (git owns that).
+7. **No `print()` in library code** — return values; `demos/` owns output.
+    (Repo rule.)
 
 ## §8 Functions, comprehensions & generators
 
@@ -321,3 +407,4 @@ ruff check --fix . && ruff format . && mypy src && pytest
 | Date (UTC) | Change | Source |
 |---|---|---|
 | 2026-10-11 | Initial guide: PEP 8 lay-out/naming/programming + Google strict deltas + IST naming/equality/docs + Medium constants/globals/venv/tests | PEP 8; Google pyguide; IST gist `4e18cbe`; Medium `4784946a17d0` |
+| 2026-10-11 | Add Ruff Formatter authority (Style Guide + f-string Line breaks), enforceable logical-block blank lines (§1.4–§1.5), full comment rulebook: block/step/inline/TODO (§7.2–§7.6) | Ruff formatter docs; PEP 8 Comments/Blank Lines; PEP 257; Google §3.8 |
