@@ -306,6 +306,34 @@ except OSError as exc:
     logger.error("io failed: %s", exc)
 ```
 
+Unknown type: catch `Exception` once at the boundary, never in library
+code. Library handlers catch only types they understand; the entry
+point owns the unknown:
+
+```python
+# Library: specific only.
+try:
+    value = mapping[key]
+except KeyError as exc:
+    raise NotFoundError(key) from exc
+```
+
+```python
+# Boundary (main, request handler, thread top): unknown allowed.
+def main() -> int:
+    """Run the demo, returning an exit code."""
+    try:
+        run()
+    except Exception:
+        logger.exception("unhandled failure")
+        return 1
+    return 0
+```
+
+Do not guess the type upfront. Let it crash, read the last traceback
+line (`ValueError: ...`) or `type(exc).__name__`, then catch that
+specific type at the library site.
+
 `contextlib.suppress` is the readable `except: pass` for one expected
 type:
 
