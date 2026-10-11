@@ -19,7 +19,7 @@
     "description": "Python study + logic-building practice: exercises under src/python_material (one folder per topic with code + PROBLEM.md), pytest suite under tests/ mirroring the package, runnable demos under demos/. Python 3.14, src layout, ruff + mypy gated.",
     "type": "python"
   },
-  "instructions": ["AGENTS.md", "README.md", "docs/STYLE_GUIDE.md"],
+  "instructions": ["AGENTS.md", "README.md", "docs/STYLE_GUIDE.md", "docs/COMMIT_CONVENTION.md"],
   "agents": {
     "default": "python-practice-assistant",
     "list": [

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# commit-msg hook: enforce Conventional Commits (see docs/COMMIT_CONVENTION.md).
+# Enable with: git config core.hooksPath githooks
+# Adapted from https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716 (CC0, cfgnunes).
+
+COMMIT_MSG_FILE=$1
+
+# Ignore merge commits and branch-merge messages.
+if grep --quiet --extended-regexp " into |^Merge " "$COMMIT_MSG_FILE"; then
+    exit 0
+fi
+
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+CONVENTIONAL_COMMIT_REGEX='^(feat|fix|docs|style|refactor|test|chore|build|ci|perf|revert)(\([a-zA-Z0-9_.-]+\))?(!)?:[[:space:]].*$'
+
+if ! [[ $COMMIT_MSG =~ $CONVENTIONAL_COMMIT_REGEX ]]; then
+    echo "ERROR: Commit message does not follow Conventional Commits format."
+    echo
+    echo "Expected: <type>(<optional scope>): <description>"
+    echo "          [optional body]"
+    echo "          [optional footer(s)]"
+    echo
+    echo "Valid types are:"
+    echo "  feat:     A new feature."
+    echo "  fix:      A bug fix."
+    echo "  docs:     Documentation changes."
+    echo "  style:    Code style changes (formatting, no production change)."
+    echo "  refactor: Code refactoring (neither bug fix nor feature)."
+    echo "  perf:     Performance improvements."
+    echo "  test:     Adding or updating tests."
+    echo "  build:    Build system or external dependencies."
+    echo "  ci:       CI configuration files or scripts."
+    echo "  chore:    Routine tasks (tooling, config, cleanup)."
+    echo "  revert:   Reverting a previous commit."
+    echo
+    echo "Examples:"
+    echo "  feat(strings): add palindrome exercise"
+    echo "  fix(arrays)!: resolve duplicate-input crash"
+    echo "  docs: update commit convention scope list"
+    echo
+    echo "Full rule: docs/COMMIT_CONVENTION.md"
+    exit 1
+fi
+
+exit 0

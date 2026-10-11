@@ -75,6 +75,7 @@ Every agent review and every skill example must conform to it.
 - Bash `*` allowed, except destructive commands are denied: `rm -rf *`, `sudo *`, `chmod 777 *` (full deny list in `permissions/default.md`).
 - Sensitive files (`.env*`, `*.key`, `*.pem`, `secrets.*`, `credentials.*`) are neither written nor read.
 - Never install toolchains/packages on your own — give copy-pasteable commands instead.
+- Every commit follows Conventional Commits (`docs/COMMIT_CONVENTION.md`); enforced by `githooks/commit-msg` (`git config core.hooksPath githooks`).
 
 ## Usage
 

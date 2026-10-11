@@ -25,6 +25,15 @@ Python study + logic-building practice repo. Package `src/python_material/`: `co
 - Destructive bash is denied (`rm -rf *`, `sudo *`, `chmod 777 *`, force-push, `curl * | bash` — full list in `.opencode/permissions/default.md`).
 - Never read or write secrets (`.env*`, `*.key`, `*.pem`, `secrets.*`, `credentials.*`).
 
+## Commits
+
+- Every commit MUST follow Conventional Commits per `docs/COMMIT_CONVENTION.md`:
+  `<type>[optional scope][optional !]: <description>` (types: `feat`, `fix`,
+  `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`).
+- One commit = one type; split mixed changes. Agents writing commits obey the
+  same rule — no exceptions.
+- The `commit-msg` hook enforces this; enable with `git config core.hooksPath githooks`.
+
 ## graphify
 
 This project uses the shared graphify skill (`.opencode/skills/graphify/`) and reminder plugin (`.opencode/plugins/graphify.js`).
