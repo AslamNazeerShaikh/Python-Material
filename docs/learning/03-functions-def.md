@@ -159,6 +159,33 @@ Built-ins you will use: `@property`, `@classmethod`, `@staticmethod`,
 6. Comprehensions for one `for` plus optional filter only. Nested
    loops go explicit.
 
+## 6. Docstring and blank-line shape
+
+No blank line between `def ...:`, the docstring, and the first
+statement. The three form one header block:
+
+```python
+def find_second_largest(numbers: list[int]) -> int:
+    """Return the second largest distinct value."""
+    if numbers is None:
+        raise ValueError("numbers must not be None")
+```
+
+Blank lines separate logical blocks only (guard, setup, computation,
+post-check, return), exactly one between each. A blank line after the
+docstring orphans the guard from its header (`STYLE_GUIDE §1.4`).
+
+Docstring shape (`STYLE_GUIDE §7.1`):
+
+1. Opening `"""` stays on the summary line, never alone on its own
+   line. Leading-newline form breaks `help()` one-line summaries.
+2. Summary line first, then blank line, then detail plus `Args:` /
+   `Returns:` / `Raises:` sections.
+3. One blank line after a class docstring before the first method;
+   never inside a function.
+4. Floating triple-quoted strings are not comments. Multi-line comments
+   use `#` lines; docstrings are reserved for the first statement.
+
 ## Next
 
 - [04-classes-oop.md](04-classes-oop.md) — methods are functions with

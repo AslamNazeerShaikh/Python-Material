@@ -113,6 +113,46 @@ if __name__ == "__main__":
 5. Name shadowing stdlib (`email.py`, `random.py`) hijacks imports.
    Never name a module after the stdlib.
 
+## 7. Import scope and memory
+
+Sibling import (absolute only):
+
+```python
+# src/python_material/arrays/first.py
+class Helper:
+    """Helper."""
+
+
+def util() -> int:
+    """Return 1."""
+    return 1
+```
+
+```python
+# src/python_material/arrays/second.py
+from python_material.arrays.first import Helper, util
+```
+
+Scope: imported names bind in the importing module's namespace only,
+like C# `using` being per-file. Other modules do not see them unless
+they import them too.
+
+Memory: no copy. First import executes the module once and caches it
+in `sys.modules`. Later imports are a dict lookup plus a reference
+bind, so `import x` and `from x import Y` cost the same module load:
+
+```python
+import python_material.arrays.first as first
+from python_material.arrays.first import Helper
+
+assert first.Helper is Helper  # Same object, same id().
+```
+
+A function-level `import` defers that first-execution cost to the
+first call (useful for heavy or circular deps). After that it is also
+a cached lookup, so per-call overhead is negligible. Top-level imports
+stay the default for readability.
+
 ## Next
 
 - [02-dunder-attributes.md](02-dunder-attributes.md) — the names with
