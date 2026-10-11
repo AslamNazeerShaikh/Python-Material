@@ -23,6 +23,7 @@ system: |
 
   ```python
   """Tests for second_largest."""
+
   import pytest
 
   from python_material.arrays.second_largest import find_second_largest

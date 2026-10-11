@@ -43,10 +43,10 @@ ruff check --fix . && ruff format . && mypy src && pytest
     delimiter, or use a 4-space hanging indent with nothing on the first line.
     (PEP 8; Google §3.4; IST "be consistent".)
     ```python
-    # Correct.
+    # Correct (second call exceeds 88 cols, so it splits).
     total = long_function_name(var_one, var_two, var_three, var_four)
     total = long_function_name(
-        var_one, var_two, var_three, var_four
+        argument_alpha, argument_beta, argument_gamma, argument_delta
     )
     ```
 2. **Max line length 88**, enforced by `ruff format` (`line-length = 88` in
@@ -54,11 +54,12 @@ ruff check --fix . && ruff format . && mypy src && pytest
     [Ruff Formatter Style Guide](https://docs.astral.sh/ruff/formatter/#style-guide).
     Docstrings/comments wrap at 72 where practical. (PEP 8; Google §3.2/§3.4.)
     ```python
-    # Correct.
-    income = (
-        gross_wages
-        + taxable_interest
-        - ira_deduction
+    # Correct (over 88 cols, so it splits before each operator).
+    income = gross_wages + taxable_interest - ira_deduction
+    total_income = (
+        gross_yearly_wages_subtotal
+        + taxable_interest_earnings_total
+        - ira_deduction_claimed
     )
     ```
 3. **Blank lines at module level:** two between top-level functions/classes;
@@ -150,6 +151,8 @@ ruff check --fix . && ruff format . && mypy src && pytest
    ```python
    # Correct.
    def complex_number(real: float, imag: float = 0.0) -> complex: ...
+
+
    result = compute(value, scale=2)
    ```
 4. Never vertically align tokens across lines (`x = 1` / `long_var = 2` padded) —
@@ -296,7 +299,7 @@ ruff check --fix . && ruff format . && mypy src && pytest
    IST; Medium.)
    ```python
    # Correct.
-   squares = [x ** 2 for x in range(11) if x % 2 == 0]
+   squares = [x**2 for x in range(11) if x % 2 == 0]
    # Wrong — refactor to nested loops.
    pairs = [(x, y) for x in range(10) for y in range(5) if x * y > 10]
    ```
