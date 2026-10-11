@@ -281,3 +281,7 @@ if __name__ == "__main__":
 
 - [README.md](README.md) — index.
 - [02-dunder-attributes.md](02-dunder-attributes.md) — object protocol.
+- [08-csharp-keywords-to-python.md](08-csharp-keywords-to-python.md) —
+  `this`, `static`, passing, defaults, lifetime, scope.
+- [09-object-model-type.md](09-object-model-type.md) — everything is
+  an object, `type()`, OOP pillars.

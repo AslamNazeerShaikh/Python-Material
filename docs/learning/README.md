@@ -14,6 +14,8 @@ cases and C# comparisons.
 | 5 | Decorators (`@`) | [05-decorators.md](05-decorators.md) | What `@` executes, writing wrappers, factories, when to avoid |
 | 6 | `lambda` and IIFE | [06-lambda-iife.md](06-lambda-iife.md) | Expression-only functions, key adapters, IIFE scope, closures |
 | 7 | Exceptions | [07-exceptions.md](07-exceptions.md) | Built-ins, `try/except/else/finally`, custom errors, halt/exit |
+| 8 | C# keywords to Python | [08-csharp-keywords-to-python.md](08-csharp-keywords-to-python.md) | `this`/`static`, passing, defaults, ctors, `readonly`, scope |
+| 9 | Object model and `type()` | [09-object-model-type.md](09-object-model-type.md) | Everything-is-object, `type`/`isinstance`, OOP pillars |
 
 Conventions used in all files: `src/` layout, pure library code (return
 values, no `print()`), Google-style docstrings, type hints on public
