@@ -382,14 +382,13 @@ ruff check --fix . && ruff format . && mypy src && pytest
 5. **Threading**: never rely on GIL-atomicity; `queue.Queue` between threads,
    `threading` primitives otherwise. (Google §2.18.)
 
-## §11 Testing, venv & hygiene (Medium + repo)
+## §11 Testing & hygiene (Medium + repo)
 
 1. **pytest for everything new** — one module per topic, parametrized edge cases
    first (`test_<behavior>_when_<condition>`); `pytest.raises(..., match=...)`
    for error paths. (Medium §9.)
-2. **Virtualenv per project**: `python -m venv .venv && source .venv/bin/activate`
-   (Windows: `.venv\\Scripts\\activate`); never install packages globally or
-   from agents without explicit user approval. (Medium §8.)
+2. **System Python, no venv**: install with `pip install -e ".[dev]"` on the
+   system/Homebrew Python directly; never create a `.venv`/`venv`.
 3. **Pure library**: no `print()`/`input()` in `src/`; no `sys.exit()` in
    importable code; demos live in `demos/` behind `if __name__ == "__main__":`.
 4. **Fix fast**: broken lint/type/test/doc on discovery, same change — "now is

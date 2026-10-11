@@ -4,7 +4,7 @@ Python study + logic-building practice repo. Package `src/python_material/`: `co
 
 ## Toolchain
 
-- Python 3.14, src layout, `pip install -e ".[dev]"` (prefer a venv: `python -m venv .venv`).
+- Python 3.14, src layout, `pip install -e ".[dev]"` (system/Homebrew Python, no venv).
 - `pytest` / `pytest --cov=src --cov-report=term-missing`; demos with `python demos/main.py`.
 - Gates: `ruff check .`, `ruff format --check .`, `mypy src` — all green before commit.
 - Style authority is `docs/STYLE_GUIDE.md` (PEP 8 + Google pyguide + IST gist + clean-code practices); every review cites its section.

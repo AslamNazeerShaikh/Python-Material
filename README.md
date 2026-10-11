@@ -36,7 +36,7 @@ Scenario-based interview Q&A with answers and explanations: [`docs/question-bank
 
 ### Prerequisites
 
-- Python >= 3.10
+- Python >= 3.10 (Homebrew Python is fine: `brew install python`)
 - `git`
 
 ### 1. Clone the repo
@@ -46,38 +46,33 @@ git clone <repo-url>
 cd Python-Material
 ```
 
-### 2. Create and activate a virtual environment
+### 2. Install the package in editable mode with dev tools
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+python3 -m pip install -e ".[dev]"
 ```
 
-### 3. Install the package in editable mode with dev tools
+> Homebrew Python may require `python3 -m pip install -e ".[dev]" --break-system-packages` (PEP 668).
+
+### 3. Run the demo
 
 ```bash
-pip install -e ".[dev]"
+python3 demos/main.py
 ```
 
-### 4. Run the demo
+### 4. Run the tests
 
 ```bash
-python demos/main.py
+python3 -m pytest
+python3 -m pytest --cov=src --cov-report=term-missing
 ```
 
-### 5. Run the tests
+### 5. Lint, format check, and type check
 
 ```bash
-pytest
-pytest --cov=src --cov-report=term-missing
-```
-
-### 6. Lint, format check, and type check
-
-```bash
-ruff check .
-ruff format --check .
-mypy src
+python3 -m ruff check .
+python3 -m ruff format --check .
+python3 -m mypy src
 ```
 
 ## Practice strategies
