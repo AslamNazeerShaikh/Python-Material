@@ -32,12 +32,53 @@ package (return values, no `print()`), add tests + a demo entry.
 
 Scenario-based interview Q&A with answers and explanations: [`docs/question-bank/`](docs/question-bank/) (seeded per topic as exercises land).
 
-## Commands
+## Getting Started
 
-- `pip install -e ".[dev]"` (once; prefer a venv: `python -m venv .venv`)
-- `pytest` / `pytest --cov=src --cov-report=term-missing`
-- `python demos/main.py`
-- `ruff check --fix . && ruff format . && mypy src`
+### Prerequisites
+
+- Python >= 3.10
+- `git`
+
+### 1. Clone the repo
+
+```bash
+git clone <repo-url>
+cd Python-Material
+```
+
+### 2. Create and activate a virtual environment
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+```
+
+### 3. Install the package in editable mode with dev tools
+
+```bash
+pip install -e ".[dev]"
+```
+
+### 4. Run the demo
+
+```bash
+python demos/main.py
+```
+
+### 5. Run the tests
+
+```bash
+pytest
+pytest --cov=src --cov-report=term-missing
+```
+
+### 6. Lint, format check, and type check
+
+```bash
+ruff check .
+ruff format --check .
+mypy src
+```
 
 ## Practice strategies
 
