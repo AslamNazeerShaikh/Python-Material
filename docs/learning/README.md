@@ -16,6 +16,7 @@ cases and C# comparisons.
 | 7 | Exceptions | [07-exceptions.md](07-exceptions.md) | Built-ins, `try/except/else/finally`, custom errors, halt/exit |
 | 8 | C# keywords to Python | [08-csharp-keywords-to-python.md](08-csharp-keywords-to-python.md) | `this`/`static`, passing, defaults, ctors, `readonly`, scope |
 | 9 | Object model and `type()` | [09-object-model-type.md](09-object-model-type.md) | Everything-is-object, `type`/`isinstance`, OOP pillars |
+| 10 | `self`, `:` and `->` | [10-self-and-annotations.md](10-self-and-annotations.md) | Receiver, bound methods, labels-not-locks, edges |
 
 Conventions used in all files: `src/` layout, pure library code (return
 values, no `print()`), Google-style docstrings, type hints on public
