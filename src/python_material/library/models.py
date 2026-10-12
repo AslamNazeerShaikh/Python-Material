@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from dataclasses import dataclass
 
 
@@ -14,6 +15,16 @@ class Author:
     email: str
     created_at: str
 
+    @classmethod
+    def from_row(cls, row: sqlite3.Row) -> Author:
+        """Build from a DB row (named constructor; cls keeps subclasses)."""
+        return cls(
+            id=row["id"],
+            name=row["name"],
+            email=row["email"],
+            created_at=row["created_at"],
+        )
+
 
 @dataclass(frozen=True)
 class AuthorProfile:
@@ -22,6 +33,11 @@ class AuthorProfile:
     id: int
     author_id: int
     bio: str
+
+    @classmethod
+    def from_row(cls, row: sqlite3.Row) -> AuthorProfile:
+        """Build from a DB row (named constructor; cls keeps subclasses)."""
+        return cls(id=row["id"], author_id=row["author_id"], bio=row["bio"])
 
 
 @dataclass(frozen=True)
@@ -33,6 +49,16 @@ class Book:
     year: int
     author_id: int
 
+    @classmethod
+    def from_row(cls, row: sqlite3.Row) -> Book:
+        """Build from a DB row (named constructor; cls keeps subclasses)."""
+        return cls(
+            id=row["id"],
+            title=row["title"],
+            year=row["year"],
+            author_id=row["author_id"],
+        )
+
 
 @dataclass(frozen=True)
 class Genre:
@@ -40,6 +66,11 @@ class Genre:
 
     id: int
     name: str
+
+    @classmethod
+    def from_row(cls, row: sqlite3.Row) -> Genre:
+        """Build from a DB row (named constructor; cls keeps subclasses)."""
+        return cls(id=row["id"], name=row["name"])
 
 
 @dataclass(frozen=True)
@@ -58,3 +89,8 @@ class AuthorDetail:
     author: Author
     bio: str | None
     books: tuple[Book, ...]
+
+    @property
+    def book_count(self) -> int:
+        """Return how many books are held (cheap derived read)."""
+        return len(self.books)

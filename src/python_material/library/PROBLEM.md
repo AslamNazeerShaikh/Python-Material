@@ -8,7 +8,12 @@ HTTP with FastAPI. One domain carries every relationship shape.
 - Manual (`database.py` + `repository.py`): hand-written DDL/DML with
   `?` placeholders, `Row` factory, `PRAGMA foreign_keys = ON`, and
   `executemany` for bulk paths — no ORM, every statement visible.
-- Served (`api.py`): thin FastAPI routes over the repository (one
+- Orchestrated (`service.py`): `LibraryService` behind reader/writer
+  Protocols (SOLID seam) — stats via `Counter`, recent-query `deque`,
+  multi-step registration with compensation.
+- Failed loudly (`errors.py`): `LibraryError` → `NotFoundError` /
+  `ConflictError`, all still `ValueError` for old catchers.
+- Served (`api.py`): thin FastAPI routes over the service (one
   connection per request), Pydantic shapes at the boundary, Scalar UI
   at `/scalar` — trade-off is explicit SQL vs zero magic.
 

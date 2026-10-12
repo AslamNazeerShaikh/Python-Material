@@ -5,6 +5,11 @@ from __future__ import annotations
 import sqlite3
 from datetime import datetime, timezone
 
+from python_material.library.errors import (
+    ConflictError,
+    LibraryError,
+    NotFoundError,
+)
 from python_material.library.models import (
     Author,
     AuthorDetail,
@@ -25,26 +30,6 @@ def _like_escape(text: str) -> str:
     return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
-def _author_of(row: sqlite3.Row) -> Author:
-    """Map a row to an Author (single shaping point for author reads)."""
-    return Author(
-        id=row["id"],
-        name=row["name"],
-        email=row["email"],
-        created_at=row["created_at"],
-    )
-
-
-def _book_of(row: sqlite3.Row) -> Book:
-    """Map a row to a Book (single shaping point for book reads)."""
-    return Book(
-        id=row["id"],
-        title=row["title"],
-        year=row["year"],
-        author_id=row["author_id"],
-    )
-
-
 def create_author(conn: sqlite3.Connection, name: str, email: str) -> Author:
     """Insert one author, returning the stored snapshot.
 
@@ -57,7 +42,8 @@ def create_author(conn: sqlite3.Connection, name: str, email: str) -> Author:
         The inserted author, id included.
 
     Raises:
-        ValueError: If a field is empty or the email is taken.
+        ValueError: If a field is empty.
+        ConflictError: If the email is taken.
     """
     if conn is None:
         raise ValueError("conn must not be None")
@@ -72,12 +58,13 @@ def create_author(conn: sqlite3.Connection, name: str, email: str) -> Author:
             (name, email, _utcnow()),
         )
     except sqlite3.IntegrityError as exc:
-        raise ValueError(f"email {email!r} is already taken") from exc
+        raise ConflictError(f"email {email!r} is already taken") from exc
     conn.commit()
 
     assert cur.lastrowid is not None
     author = get_author(conn, cur.lastrowid)
-    assert author is not None
+    if author is None:
+        raise LibraryError("author insert succeeded but read-back failed")
 
     return author
 
@@ -95,7 +82,8 @@ def create_authors_bulk(
         Inserted authors in input order.
 
     Raises:
-        ValueError: If rows is empty/has blanks, or any email is taken.
+        ValueError: If rows is empty or has blanks.
+        ConflictError: If any email is taken (whole batch rolls back).
     """
     if conn is None:
         raise ValueError("conn must not be None")
@@ -112,13 +100,13 @@ def create_authors_bulk(
         )
     except sqlite3.IntegrityError as exc:
         conn.rollback()
-        raise ValueError("bulk insert hit a taken email; rolled back") from exc
+        raise ConflictError("bulk insert hit a taken email; rolled back") from exc
     conn.commit()
 
     # One read-back by the UNIQUE emails restores ids in input order.
     slots = ",".join("?" * len(rows))
     by_email = {
-        row["email"]: _author_of(row)
+        row["email"]: Author.from_row(row)
         for row in conn.execute(
             f"SELECT * FROM authors WHERE email IN ({slots})",
             [email for _, email in rows],
@@ -140,7 +128,7 @@ def get_author(conn: sqlite3.Connection, author_id: int) -> Author | None:
 
     row = conn.execute("SELECT * FROM authors WHERE id = ?", (author_id,)).fetchone()
 
-    return _author_of(row) if row else None
+    return Author.from_row(row) if row else None
 
 
 def list_authors(conn: sqlite3.Connection) -> list[Author]:
@@ -153,7 +141,8 @@ def list_authors(conn: sqlite3.Connection) -> list[Author]:
         raise ValueError("conn must not be None")
 
     return [
-        _author_of(row) for row in conn.execute("SELECT * FROM authors ORDER BY id")
+        Author.from_row(row)
+        for row in conn.execute("SELECT * FROM authors ORDER BY id")
     ]
 
 
@@ -173,13 +162,15 @@ def update_author(
         email: New email, or None to keep.
 
     Raises:
-        ValueError: If the author is missing or the email is taken.
+        NotFoundError: If the author is missing.
+        ValueError: If a supplied field is blank.
+        ConflictError: If the email is taken.
     """
     if conn is None:
         raise ValueError("conn must not be None")
 
     if get_author(conn, author_id) is None:
-        raise ValueError(f"author {author_id} not found")
+        raise NotFoundError(f"author {author_id} not found")
     if name is not None and not name:
         raise ValueError("name must not be empty")
     if email is not None and not email:
@@ -193,11 +184,12 @@ def update_author(
                 "UPDATE authors SET email = ? WHERE id = ?", (email, author_id)
             )
     except sqlite3.IntegrityError as exc:
-        raise ValueError(f"email {email!r} is already taken") from exc
+        raise ConflictError(f"email {email!r} is already taken") from exc
     conn.commit()
 
     updated = get_author(conn, author_id)
-    assert updated is not None
+    if updated is None:
+        raise LibraryError("author update succeeded but read-back failed")
 
     return updated
 
@@ -210,7 +202,7 @@ def delete_author(conn: sqlite3.Connection, author_id: int) -> None:
         author_id: Primary key to delete.
 
     Raises:
-        ValueError: If the author is missing.
+        NotFoundError: If the author is missing.
     """
     if conn is None:
         raise ValueError("conn must not be None")
@@ -218,7 +210,7 @@ def delete_author(conn: sqlite3.Connection, author_id: int) -> None:
     cur = conn.execute("DELETE FROM authors WHERE id = ?", (author_id,))
     conn.commit()
     if cur.rowcount == 0:
-        raise ValueError(f"author {author_id} not found")
+        raise NotFoundError(f"author {author_id} not found")
 
 
 def upsert_profile(conn: sqlite3.Connection, author_id: int, bio: str) -> AuthorProfile:
@@ -230,12 +222,13 @@ def upsert_profile(conn: sqlite3.Connection, author_id: int, bio: str) -> Author
         bio: Profile text (must not be empty).
 
     Raises:
-        ValueError: If the author is missing or the bio is empty.
+        NotFoundError: If the author is missing.
+        ValueError: If the bio is empty.
     """
     if conn is None:
         raise ValueError("conn must not be None")
     if get_author(conn, author_id) is None:
-        raise ValueError(f"author {author_id} not found")
+        raise NotFoundError(f"author {author_id} not found")
     if not bio:
         raise ValueError("bio must not be empty")
 
@@ -249,9 +242,10 @@ def upsert_profile(conn: sqlite3.Connection, author_id: int, bio: str) -> Author
     row = conn.execute(
         "SELECT * FROM author_profiles WHERE author_id = ?", (author_id,)
     ).fetchone()
-    assert row is not None
+    if row is None:
+        raise LibraryError("profile upsert succeeded but read-back failed")
 
-    return AuthorProfile(id=row["id"], author_id=row["author_id"], bio=row["bio"])
+    return AuthorProfile.from_row(row)
 
 
 def get_profile(conn: sqlite3.Connection, author_id: int) -> AuthorProfile | None:
@@ -268,11 +262,7 @@ def get_profile(conn: sqlite3.Connection, author_id: int) -> AuthorProfile | Non
         "SELECT * FROM author_profiles WHERE author_id = ?", (author_id,)
     ).fetchone()
 
-    return (
-        AuthorProfile(id=row["id"], author_id=row["author_id"], bio=row["bio"])
-        if row
-        else None
-    )
+    return AuthorProfile.from_row(row) if row else None
 
 
 def create_book(
@@ -292,7 +282,8 @@ def create_book(
         genre_ids: Genre keys to link (each must exist).
 
     Raises:
-        ValueError: On blank title, bad year, or missing author/genre.
+        ValueError: On blank title or bad year.
+        NotFoundError: On missing author or genre.
     """
     if conn is None:
         raise ValueError("conn must not be None")
@@ -301,12 +292,12 @@ def create_book(
     if year <= 0:
         raise ValueError("year must be positive")
     if get_author(conn, author_id) is None:
-        raise ValueError(f"author {author_id} not found")
+        raise NotFoundError(f"author {author_id} not found")
 
     existing = {row["id"] for row in conn.execute("SELECT id FROM genres").fetchall()}
     missing = [g for g in genre_ids if g not in existing]
     if missing:
-        raise ValueError(f"genres not found: {missing}")
+        raise NotFoundError(f"genres not found: {missing}")
 
     try:
         cur = conn.execute(
@@ -319,12 +310,13 @@ def create_book(
         )
     except sqlite3.IntegrityError as exc:
         conn.rollback()
-        raise ValueError("book insert failed integrity checks") from exc
+        raise LibraryError("book insert failed integrity checks") from exc
     conn.commit()
 
     assert cur.lastrowid is not None
     book = get_book(conn, cur.lastrowid)
-    assert book is not None
+    if book is None:
+        raise LibraryError("book insert succeeded but read-back failed")
 
     return book
 
@@ -342,8 +334,9 @@ def create_books_bulk(
         Inserted books in input order.
 
     Raises:
-        ValueError: On empty rows, blank titles, bad years, or a
-            missing author (whole batch rolls back).
+        ValueError: On empty rows, blank titles, or bad years.
+        NotFoundError: On a missing author (nothing is written).
+        LibraryError: If the batch write itself fails (rolled back).
     """
     if conn is None:
         raise ValueError("conn must not be None")
@@ -361,11 +354,15 @@ def create_books_bulk(
         )
     }
     if wanted - found:
-        raise ValueError(f"authors not found: {sorted(wanted - found)}")
+        raise NotFoundError(f"authors not found: {sorted(wanted - found)}")
 
-    conn.executemany(
-        "INSERT INTO books (title, year, author_id) VALUES (?, ?, ?)", rows
-    )
+    try:
+        conn.executemany(
+            "INSERT INTO books (title, year, author_id) VALUES (?, ?, ?)", rows
+        )
+    except sqlite3.IntegrityError as exc:
+        conn.rollback()
+        raise LibraryError("bulk books insert failed; rolled back") from exc
     conn.commit()
 
     # Read back newest-first, then restore input order via rowids.
@@ -373,7 +370,7 @@ def create_books_bulk(
         "SELECT * FROM books ORDER BY id DESC LIMIT ?", (len(rows),)
     ).fetchall()
 
-    return [_book_of(row) for row in reversed(fresh)]
+    return [Book.from_row(row) for row in reversed(fresh)]
 
 
 def get_book(conn: sqlite3.Connection, book_id: int) -> Book | None:
@@ -388,7 +385,7 @@ def get_book(conn: sqlite3.Connection, book_id: int) -> Book | None:
 
     row = conn.execute("SELECT * FROM books WHERE id = ?", (book_id,)).fetchone()
 
-    return _book_of(row) if row else None
+    return Book.from_row(row) if row else None
 
 
 def list_books(
@@ -437,7 +434,7 @@ def list_books(
         args.append(f"%{_like_escape(query)}%")
     sql += " ORDER BY b.id"
 
-    return [_book_of(row) for row in conn.execute(sql, args)]
+    return [Book.from_row(row) for row in conn.execute(sql, args)]
 
 
 def get_book_detail(conn: sqlite3.Connection, book_id: int) -> BookDetail | None:
@@ -490,19 +487,20 @@ def update_book(
         author_id: New owner, or None to keep (must exist).
 
     Raises:
-        ValueError: If the book/author is missing or fields are blank.
+        NotFoundError: If the book or new author is missing.
+        ValueError: If a supplied field is blank or bad.
     """
     if conn is None:
         raise ValueError("conn must not be None")
 
     if get_book(conn, book_id) is None:
-        raise ValueError(f"book {book_id} not found")
+        raise NotFoundError(f"book {book_id} not found")
     if title is not None and not title:
         raise ValueError("title must not be empty")
     if year is not None and year <= 0:
         raise ValueError("year must be positive")
     if author_id is not None and get_author(conn, author_id) is None:
-        raise ValueError(f"author {author_id} not found")
+        raise NotFoundError(f"author {author_id} not found")
 
     if title is not None:
         conn.execute("UPDATE books SET title = ? WHERE id = ?", (title, book_id))
@@ -515,7 +513,8 @@ def update_book(
     conn.commit()
 
     updated = get_book(conn, book_id)
-    assert updated is not None
+    if updated is None:
+        raise LibraryError("book update succeeded but read-back failed")
 
     return updated
 
@@ -528,7 +527,7 @@ def delete_book(conn: sqlite3.Connection, book_id: int) -> None:
         book_id: Primary key to delete.
 
     Raises:
-        ValueError: If the book is missing.
+        NotFoundError: If the book is missing.
     """
     if conn is None:
         raise ValueError("conn must not be None")
@@ -536,7 +535,7 @@ def delete_book(conn: sqlite3.Connection, book_id: int) -> None:
     cur = conn.execute("DELETE FROM books WHERE id = ?", (book_id,))
     conn.commit()
     if cur.rowcount == 0:
-        raise ValueError(f"book {book_id} not found")
+        raise NotFoundError(f"book {book_id} not found")
 
 
 def delete_books_bulk(conn: sqlite3.Connection, ids: list[int]) -> int:
@@ -569,7 +568,8 @@ def create_genre(conn: sqlite3.Connection, name: str) -> Genre:
         name: Unique genre name (must not be empty).
 
     Raises:
-        ValueError: If the name is empty or taken.
+        ValueError: If the name is empty.
+        ConflictError: If the name is taken.
     """
     if conn is None:
         raise ValueError("conn must not be None")
@@ -579,13 +579,14 @@ def create_genre(conn: sqlite3.Connection, name: str) -> Genre:
     try:
         cur = conn.execute("INSERT INTO genres (name) VALUES (?)", (name,))
     except sqlite3.IntegrityError as exc:
-        raise ValueError(f"genre {name!r} is already taken") from exc
+        raise ConflictError(f"genre {name!r} is already taken") from exc
     conn.commit()
 
     row = conn.execute("SELECT * FROM genres WHERE id = ?", (cur.lastrowid,)).fetchone()
-    assert row is not None
+    if row is None:
+        raise LibraryError("genre insert succeeded but read-back failed")
 
-    return Genre(id=row["id"], name=row["name"])
+    return Genre.from_row(row)
 
 
 def list_genres(conn: sqlite3.Connection) -> list[Genre]:
@@ -598,7 +599,7 @@ def list_genres(conn: sqlite3.Connection) -> list[Genre]:
         raise ValueError("conn must not be None")
 
     return [
-        Genre(id=row["id"], name=row["name"])
+        Genre.from_row(row)
         for row in conn.execute("SELECT * FROM genres ORDER BY name")
     ]
 
@@ -612,12 +613,12 @@ def add_genre_to_book(conn: sqlite3.Connection, book_id: int, genre_id: int) -> 
         genre_id: Genre side; must exist.
 
     Raises:
-        ValueError: If either side is missing.
+        NotFoundError: If either side is missing.
     """
     if conn is None:
         raise ValueError("conn must not be None")
     if get_book(conn, book_id) is None:
-        raise ValueError(f"book {book_id} not found")
+        raise NotFoundError(f"book {book_id} not found")
 
     cur = conn.execute(
         "INSERT OR IGNORE INTO book_genres (book_id, genre_id) VALUES (?, ?)",
@@ -629,7 +630,7 @@ def add_genre_to_book(conn: sqlite3.Connection, book_id: int, genre_id: int) -> 
             "SELECT 1 FROM genres WHERE id = ?", (genre_id,)
         ).fetchone()
         if still is None:
-            raise ValueError(f"genre {genre_id} not found")
+            raise NotFoundError(f"genre {genre_id} not found")
     conn.commit()
 
 
@@ -669,7 +670,7 @@ def get_author_detail(conn: sqlite3.Connection, author_id: int) -> AuthorDetail 
 
     profile = get_profile(conn, author_id)
     books = [
-        _book_of(row)
+        Book.from_row(row)
         for row in conn.execute(
             "SELECT * FROM books WHERE author_id = ? ORDER BY id", (author_id,)
         )
@@ -678,3 +679,22 @@ def get_author_detail(conn: sqlite3.Connection, author_id: int) -> AuthorDetail 
     return AuthorDetail(
         author=author, bio=profile.bio if profile else None, books=tuple(books)
     )
+
+
+def count_books_per_author(conn: sqlite3.Connection) -> dict[str, int]:
+    """Return author name to book count (one GROUP BY, feeds stats).
+
+    Args:
+        conn: Open connection.
+    """
+    if conn is None:
+        raise ValueError("conn must not be None")
+
+    return {
+        row["name"]: row["n"]
+        for row in conn.execute(
+            "SELECT a.name AS name, COUNT(b.id) AS n FROM authors a "
+            "LEFT JOIN books b ON b.author_id = a.id "
+            "GROUP BY a.id ORDER BY a.name"
+        )
+    }

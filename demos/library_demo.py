@@ -29,6 +29,12 @@ def main() -> None:
             found = repository.list_books(conn, query="demo")
             print(f"search hits: {len(found)}")
 
+            from python_material.library.service import LibraryService
+
+            svc = LibraryService(conn)
+            print(f"ranking: {svc.books_per_author()}")
+            print(f"recent: {svc.recent_queries}")
+
             print(
                 f"bulk deleted: {repository.delete_books_bulk(conn, [b.id for b in bulk])}"
             )
