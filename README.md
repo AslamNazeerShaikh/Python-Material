@@ -60,6 +60,10 @@ python3 -m pip install -e ".[dev]"
 python3 demos/main.py
 ```
 
+Menu: `1` starts the Library CRUD API (Scalar UI opens in your
+browser; Enter stops the server), `2` runs the classic demos, `3`
+runs the library tour. Piped/closed stdin runs the classic demos.
+
 ### 4. Run the tests
 
 ```bash

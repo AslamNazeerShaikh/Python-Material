@@ -147,7 +147,8 @@ Server dependencies are intentionally NOT installed by the repo
 python3 -m pip install -e ".[api]"
 ```
 
-Serve with reload:
+Serve with reload (or pick menu option `1` in `demos/main.py`,
+which starts the server, opens `/scalar`, and stops it on Enter):
 
 ```bash
 python3 -m uvicorn python_material.library.api:app --reload
