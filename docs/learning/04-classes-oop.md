@@ -397,6 +397,130 @@ Edge cases:
 5. A subclass with no `__init__` keeps the parent's full signature —
    `Kid(1, 2)` works when `Base.__init__` takes `(self, a, b)`.
 
+## 9. `del`, `__dict__`, `append()`, `super()`, `super().__init__()`
+
+Five tools every class uses. Each does exactly one job; the edges
+come from expecting a second one.
+
+### 9a. `del`: remove a name, attribute, or item (never "cleanup")
+
+```python
+handle = open_file()
+del handle  # Drops the NAME. The object lives on while others point at it.
+```
+
+Three shapes:
+
+```python
+total = 3
+del total  # Shape 1: removes a local/global name. Next read is NameError.
+
+acc.balance = 0
+del acc.balance  # Shape 2: removes an INSTANCE attribute from obj.__dict__.
+# Next acc.balance read misses the instance dict, then falls back to any
+# class attribute of the same name, else raises AttributeError.
+
+xs = [1, 2, 3]
+del xs[0]  # Shape 3: removes an item (lists shrink, dicts drop the key).
+del xs[0:2]  # Slices work too.
+```
+
+What `del` never does: run cleanup. Reclaiming memory is the garbage
+collector's job (CPython refcount plus cycle collector), and
+`__del__` timing is unpredictable — this repo bans it. Releasing a
+resource means `close()` or `with`, never `del`. Deleting something
+missing raises (`NameError` / `AttributeError` / `IndexError` /
+`KeyError`), it does not pass silently.
+
+### 9b. `__dict__`: the instance field bag vs the class snapshot
+
+```python
+a = Account("amy")
+a.__dict__  # {'owner': 'amy', '_balance': 0, ...}. Plain WRITABLE dict.
+Account.__dict__  # Read-only mappingproxy of the class namespace.
+type(Account.__dict__)  # <class 'mappingproxy'>.
+```
+
+Rules:
+
+1. Every `self.x = ...` in `__init__` lands in `obj.__dict__`;
+   `del obj.x` removes it there. `vars(obj)` is the same dict.
+2. The class mapping holds methods, class attributes, and dunders.
+   It is read-only: `Cls.__dict__["x"] = 1` is `TypeError` — write
+   through the class (`Cls.x = 1`) instead.
+3. Attribute lookup walks instance dict, then class, then bases along
+   `__mro__`. That walk is why methods resolve, why class attributes
+   act as shared defaults, and why `del obj.x` can reveal a class
+   attribute hiding underneath.
+4. `__slots__` classes have no `__dict__` (unless a base provides
+   one) — reading it is `AttributeError`. Slots restrict names, they
+   never hide values.
+
+### 9c. `append()`: the in-place list grower
+
+```python
+xs = [1]
+xs.append(2)  # Mutates to [1, 2]. Returns None. Always.
+```
+
+1. The `None` return is the classic trap: `xs = xs.append(2)` rebinds
+   `xs` to `None` and loses the list. Append-then-use, never assign.
+2. Cost is amortized O(1): the loop-collect-then-`"".join()` pattern
+   from `03` §5 exists because of it.
+3. `append` inks the shared object: every alias sees the new item
+   (see `11` Part B Case 1). Appending is mutation, not rebinding.
+4. On a private store (`self.__loans.append(item)`) it is the
+   encapsulation-friendly mutator: callers grow state only through
+   the method that can validate first.
+
+### 9d. `super()`: the MRO proxy, not "the parent class"
+
+```python
+class Loud(Dog):
+    """Loud dog."""
+
+    def speak(self) -> str:
+        return super().speak().upper()  # Extend, not replace.
+```
+
+Zero-argument `super()` inside a method means "look up past the
+current class along this instance's `__mro__`". Consequences:
+
+1. The target depends on the INSTANCE's MRO, not the lexical parent.
+   With mixins, `super().save()` may land on a mixin, not the base —
+   that dynamic dispatch is the point (cooperative multiple
+   inheritance: every link calls `super().__init__()` so each runs
+   exactly once; never call each parent explicitly or diamonds
+   double-initialize).
+2. Two jobs: extend a method (`super().speak().upper()`) and forward
+   construction (`super().__init__(name)`).
+3. Bare `super()` outside a method is `RuntimeError`. The explicit
+   `super(ThisClass, self)` form exists for exotic cases (classmethods
+   needing a different start point); prefer the zero-arg form.
+
+### 9e. `super().__init__()`: why skipping it breaks far away
+
+```python
+class Dog(Animal):
+    """Dog specialization."""
+
+    def __init__(self, name: str, breed: str) -> None:
+        super().__init__(name)  # Builds everything Animal owns (self.name).
+        self.breed = breed  # Then add what Dog owns.
+```
+
+The parent `__init__` creates parent-owned attributes. Skipping the
+call leaves them absent, and the failure surfaces far from the cause
+(`AttributeError: 'Dog' object has no attribute 'name'` inside some
+unrelated method). Rules: call it first, forward every required arg,
+and in cooperative hierarchies call it exactly once per link so the
+MRO chain completes. A subclass with no `__init__` at all inherits
+the parent's — that counts as calling it.
+
+A runnable program tying all five tools to the four OOP pillars
+lives in `demos/oop_showcase.py` (run it with
+`python3 demos/oop_showcase.py`; demos own all `print()` output).
+
 ## Next
 
 - [README.md](README.md) — index.
