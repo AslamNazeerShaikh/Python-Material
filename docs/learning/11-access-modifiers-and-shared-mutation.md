@@ -479,6 +479,23 @@ class Box:
         self.value = 0
 ```
 
+### C# vs Python: same outcome, different mechanism (or not)
+
+Last cross-check: several rows LOOK equivalent but differ in what
+the runtime guarantees. "Same outcome?" means observable behavior
+for the shown case — read the mechanism note before transferring
+the habit.
+
+| C# | Python | Same outcome? |
+|---|---|---|
+| `private` field: the compiler blocks outside access | `__x` mangling renames to `_Cls__x`; `obj._Cls__x` still reaches it | NO — rename, never a lock (Part A §2) |
+| `readonly` field: only declaration/ctor/`init` writes, runtime-enforced | `@property` without setter / `@dataclass(frozen=True)` enforce at runtime; `typing.Final` is checker-only | Partial — only the fences enforce (Part A §4) |
+| `const` (compile-time constant) | `UPPER_SNAKE` module constant (reassignable) | NO — convention only (Part A §2) |
+| `struct` copy: `var b = a; b.X = 1` leaves `a` (a real copy) | Immutable rebind: `b = a; a = a + (3,)` leaves `b` (a new object, no copy made) | Similar outcome, different mechanism — never "copy" in Python |
+| `sealed` (compiler-enforced) | `@typing.final` (checker-only) | NO at runtime (Part A §2) |
+| `ref`/`out` param writes visible to caller | Mutable-arg mutation visible; parameter rebinding invisible | Partial — only mutation crosses (Part B Case 2) |
+| `using` / `IDisposable` deterministic cleanup | `with` / `__enter__` / `__exit__` | Same shape (`07` §2) |
+
 ### 4. Prevention cheat-sheet
 
 | Risk | Pattern |

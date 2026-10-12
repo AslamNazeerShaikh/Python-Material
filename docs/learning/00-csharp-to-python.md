@@ -77,6 +77,20 @@ importable unless convention says otherwise.
 5. No overloads, no true privacy, no `const` locals enforced at runtime.
    `UPPER_SNAKE` is convention.
 
+## 5. Syntax side-by-side: the comparisons to memorize
+
+Behavior column marks real vs surface similarity. Full per-topic
+tables live in the linked files.
+
+| Job | C# | Python | Same? |
+|---|---|---|---|
+| Make an object | `var d = new Dog("rex");` | `d = Dog("rex")` | Same minus the keyword (`04`) |
+| Instance method | `string Speak() { return ...; }` (`this` implicit) | `def speak(self) -> str:` (`self` explicit) | Same job, visible receiver (`10`) |
+| Validated property | `double Radius { get; set; }` with checks in the setter | `@property` + `@radius.setter` with `ValueError` on bad input | Same outcome; Python validation is manual (`04`, `11`) |
+| Reuse code | `using System;` + project reference | `import os` / `from x import y` per module; install once via `pip install -e .` | Similar workflow; binding is runtime (`01`) |
+| Entry point | `static void Main()` | `def main() -> ...:` plus `if __name__ == "__main__":` | Different shape, same job (`02`) |
+| Iteration query | `xs.Where(x => x > 1).Select(x => x * 2)` (LINQ) | `[x * 2 for x in xs if x > 1]` (comprehension) | Same outcome, mirrored spelling (`06`) |
+
 ## Next
 
 - [01-modules-packages.md](01-modules-packages.md) — where code lives.

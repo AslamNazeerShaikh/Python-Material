@@ -31,6 +31,21 @@ imports at runtime via `sys.path`. The file layout is the API layout, so
 a clean folder means a clean API. `__init__.py` is the package hook for
 re-exports and version metadata.
 
+### C# vs Python: projects, namespaces, visibility
+
+| C# | Python | Same? |
+|---|---|---|
+| `namespace A.B { ... }` declared inside the file (or `namespace A.B;` file-scoped, C# 10+) | Directory path IS the namespace; no keyword (`src/python_material/arrays/*.py` → `python_material.arrays.*`) | Different mechanism, similar outcome |
+| `using System;` per file | `import os` per module | Similar — per-file, never transitive to other modules |
+| `using X = System.Convert;` alias | `import os.path as p` / `from m import y as z` | Same shape |
+| `using static System.Math;` then `Sin(x)` unqualified | `from math import sin` then `sin(x)` | Similar outcome; keep `from`-imports small and explicit |
+| `global using System;` (project-wide, C# 10+) | No equivalent — every module imports what it names | No equivalent |
+| Project reference + `dotnet build` (compile-time) | Installed package + `sys.path` lookup at import (runtime) | Different — build-time vs runtime binding |
+| Assembly version in `.csproj` | Version in `pyproject.toml` (optionally mirrored as `__version__`) | Similar outcome |
+| `internal` (assembly-private, compiler-enforced) | `_name` + omit from `__all__` (convention + wildcard filter only) | Different — Python never enforces |
+| `static void Main()` entry point | `if __name__ == "__main__":` guard calling `main()` | Different shape, same job |
+| Circular project reference: build error | Circular import: half-initialized module at runtime (`a` sees unfinished `b`) | Different — fail-fast vs fail-at-runtime |
+
 ## 3. Where to put code
 
 - Library code: `src/python_material/<category>/<topic>/<topic>.py`.
@@ -71,6 +86,15 @@ import python_material.arrays.second_largest as sl
 from python_material.arrays.second_largest import find_second_largest
 from python_material import arrays  # the package __init__
 ```
+
+### C# `using` vs Python `import` forms
+
+| C# | Python | Note |
+|---|---|---|
+| `using System;` then `Convert.ToInt32(x)` | `import os` then `os.getcwd()` | Qualified use; both per-file only |
+| `using C = System.Convert;` then `C.ToInt32(x)` | `import python_material.arrays.second_largest as sl` | Alias; Python `as` works on any import form |
+| `using static System.Math;` then `Sin(x)` | `from math import sin` then `sin(x)` | Unqualified name; Python side reserved for small explicit names |
+| Add reference once in `.csproj`, still `using` per file | Install once (`pip install -e .`), still `import` per module | Same workflow shape: register once, name per file |
 
 ## 5. When code runs
 

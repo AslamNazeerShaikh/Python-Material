@@ -50,6 +50,25 @@ Rules: `is None`, never `== None`. `isinstance()`, never
 `type(x) is type(1)`. `is` for identity, `==` for value. Small ints and
 short strings are cached (same `id`), so `is` on values lies.
 
+### C# vs Python: object model and type tests
+
+⚠️ Two false friends live here: Python `is` is NOT C# `is`, and
+Python has no value types. Rows marked FALSE FRIEND need memorizing.
+
+| C# | Python | Same? |
+|---|---|---|
+| Primitives + `struct`s + classes (three kinds, plus compiler magic) | One kind: everything (ints, strings, functions, classes, modules) is a heap object | Different — one model |
+| `obj.GetType()` (runtime), `typeof(X)` (compile-time `System.Type`) | `type(obj)` / `obj.__class__` (always runtime) | Similar job; `typeof` has no equivalent |
+| `x is string s` (type test + pattern bind) | `isinstance(x, Cls)` (test only; bind separately) | Similar job, plainer tool |
+| `a is b` — C# `is` NEVER means identity | `a is b` means identity (`id(a) == id(b)`); the C# twin is `ReferenceEquals(a, b)` | FALSE FRIENDS — opposite meanings |
+| `(string)x` / `x as string` casts | No casts — `isinstance` guard, or `typing.cast` (checker-only, zero runtime effect) | Different — no runtime cast operator |
+| `null` (absence; `NullReferenceException` source) | `None` (a real singleton object; `is None` like C# `is null`) | Similar outcome; `None` is an object, not a hole |
+| `==` on classes defaults to reference equality unless overloaded | `==` calls `__eq__` (default is identity; overriding is routine) | Similar default, easier override |
+| `struct` assign copies (`var b = a` is independent) | Assign always binds; independence comes from immutability (`b = a; a = a + (3,)` leaves `b`) | Different mechanism, similar outcome for immutables |
+| Boxing: `object o = 5;` wraps a value | No boxing — `5` is already an object | No equivalent needed |
+| `Equals` + `GetHashCode` kept paired | `__eq__` + `__hash__` kept paired (defining `__eq__` sets `__hash__` to `None`) | Same pairing rule |
+| Reflection `typeof(X).GetMembers()` | `dir()`, `obj.__dict__`, `help()` | Same job |
+
 ## 3. Classes are runtime objects
 
 `class` is an executable statement. It builds an object of type

@@ -44,6 +44,24 @@ def find_second_largest(numbers: list[int]) -> int:
 Rules: `def` name, parenthesized params, `-> return` hint, colon,
 4-space body. Public signatures always hinted. Docstring mandatory.
 
+### C# vs Python: functions at a glance
+
+| C# | Python | Same? |
+|---|---|---|
+| `int F(string s) { ... }` | `def f(s: str) -> int:` plus docstring | Similar shape; Python hints are runtime-ignored (`mypy` + `ValueError` enforce) |
+| `void` (no value) | `None` (`-> None`; a real value — missing `return` gives `None`) | Similar outcome, different mechanism |
+| `void F(int x = 3)` optional arg | `def f(x: int = 3)` | Same shape; Python allows any default object, so only immutable defaults |
+| Named `F(x: 1)` | `f(x=1)`, plus keyword-only after `*` | Same, with a stricter Python-only option |
+| `params int[] rest` | `*args` arriving as `tuple` | Same job |
+| No direct equivalent (add an overload or a type) | `**kwargs` arriving as `dict` | No C# equivalent |
+| Overloads `F(int)` / `F(string)` (compile-time resolution) | One `def` per name; last wins; use defaults, `X \| Y` unions, `@singledispatch` | Different — no overload resolution |
+| `ref` / `out` params (caller-visible writes) | No equivalent — `return total, count` (one tuple) or a small dataclass | No equivalent |
+| `return (a, b);` ValueTuple, deconstructed by caller | `return a, b` packs one tuple implicitly; caller unpacks | Similar outcome; Python packs without naming the type |
+| `yield return` + `IEnumerable<T>` | `yield` + generator (document `Yields:`, not `Returns:`) | Same shape |
+| `async Task<int>` + `await` | `async def` + `await`, driven by `asyncio.run()` | Same shape |
+| `x => x * 2`; block bodies `(x) => { ...; return z; }` allowed | `lambda x: x * 2`; expression-only, no annotations, name always `<lambda>` | Similar for one-liners; different limits |
+| `/// <summary>` + `<param>` / `<returns>` | Docstring `Args:` / `Returns:` / `Raises:` | Same job |
+
 ## 2. Parameters vs arguments
 
 Parameter is the declaration (`def f(a, b=10)`), argument is the call

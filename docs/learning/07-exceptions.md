@@ -67,6 +67,19 @@ with open("words.txt", encoding="utf-8") as handle:
 
 `with` is C# `using`: acquire, run block, release even on error.
 
+### Syntax side-by-side
+
+| Job | C# | Python |
+|---|---|---|
+| Guard + handle | `try { ... } catch (KeyNotFoundException ex) { ... }` | `try: ... except KeyError as exc: ...` |
+| Rethrow keeping the stack | `throw;` (never `throw ex;` — it resets the stack) | Bare `raise` (never `raise exc` — it resets the stack) |
+| Chain the cause | `throw new InvalidOperationException(msg, inner);` (inner exception) | `raise ValueError(msg) from exc` |
+| Cleanup | `using (var h = Open()) { ... }` | `with open(...) as h:` |
+| Success-only path | No equivalent (code after, or a flag) | `else:` runs only when `try` raised nothing |
+| Always runs | `finally { ... }` | `finally:` |
+| Custom error | `class NotFoundException : Exception { ... }` (name ends `Exception`) | `class NotFoundError(LookupError): ...` (name ends `Error`, derives `Exception`) |
+| Test the throw | `Assert.Throws<NotFoundException>(() => Get(...));` (xUnit; NUnit similar) | `with pytest.raises(NotFoundError, match=...):` |
+
 ## 3. Built-in hierarchy you must know
 
 ```text

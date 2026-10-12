@@ -168,6 +168,23 @@ class Point:
 Returning `NotImplemented` (not raising) lets Python try the reflected
 operation. That is the correct `__eq__` fallback.
 
+## 6. C# syntax vs Python syntax side-by-side
+
+Same jobs, mirrored spelling. Behavior column says whether the
+similarity is real or surface-only.
+
+| Job | C# | Python | Same? |
+|---|---|---|---|
+| Program entry | `static void Main(string[] args) { ... }` (or top-level statements, C# 9+) | `def main() -> ...: ...` plus `if __name__ == "__main__": main()` | Same job, different shape |
+| Doc comment | `/// <summary>...</summary>` with `<param>` / `<returns>` | Docstring `"""..."""` with `Args:` / `Returns:` / `Raises:` | Same job |
+| Type identity | `obj.GetType()`, compile-time `typeof(X)` | `type(obj)` / `obj.__class__` (always runtime) | Similar job; `typeof` has no runtime equivalent |
+| String form | `ToString()` | `__str__` / `__repr__` (always define `__repr__`) | Same job |
+| Equality + hash | `Equals` + `GetHashCode` (keep paired) | `__eq__` + `__hash__` (defining `__eq__` sets `__hash__` to `None`) | Same pairing rule |
+| Iteration / indexing | `IEnumerable` + `yield return`, indexer `this[i]` | `__iter__` / `__len__` / `__getitem__` + `yield` | Same shape |
+| Cleanup | `IDisposable` + `using` | `__enter__` / `__exit__` + `with` | Same shape |
+| Package version | `<Version>` in `.csproj` | `pyproject.toml` (optionally mirrored as `__version__`) | Same job; Python single-sources it |
+| Wildcard surface | `using` imports namespaces, never names; no `*` | `__all__` lists the names `from m import *` picks up | Different — Python's surface is explicit per module |
+
 ## Next
 
 - [03-functions-def.md](03-functions-def.md) — signatures and calls.

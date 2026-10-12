@@ -38,6 +38,17 @@ print(Dog.speak)  # Function. Needs an instance: Dog.speak(d).
 print(d.speak)  # Bound method. Instance already tucked in.
 ```
 
+### C# vs Python: the receiver
+
+| C# | Python | Same? |
+|---|---|---|
+| `this` passed implicitly | `self` as explicit first param | Same job, visible receiver |
+| `static` method has no `this` | `@staticmethod` has no `self`/`cls`; repo prefers a module function | Similar + style rule |
+| `static` factory calling `new ClassName(...)` | `@classmethod` calling `cls(...)`, subclass-safe | Similar outcome; `cls` keeps polymorphism |
+| `base(...)` / `base.Method()` | `super().__init__()` / `super().speak()`; `self` stays the real instance | Same job |
+| Extension method `M(this Dog d)` | Plain function `loud(dog)` or `Protocol` | Different shape, same call-site job |
+| `this` cannot be rebound (it is not a variable) | Rebinding `self = Box(0)` only moves a local name; mutate (`self.value = 0`) to affect the caller | Different — assignment never crosses (see `11` Part B) |
+
 ## 2. `self` mistakes and what the error means
 
 Forgetting `self`:
@@ -208,6 +219,17 @@ def repeat(text: str, times: int) -> str:
         raise ValueError("times must be >= 0")
     return text * times
 ```
+
+### C# vs Python: annotations and the `:` glyph
+
+| C# | Python | Same? |
+|---|---|---|
+| `string name`, `int F(string s)` (type first; return before the name) | `name: str`, `def f(s: str) -> int:` (type after; `->` for returns) | Same info, mirrored placement |
+| Compile-time enforced; wrong type stops the build | Stored in `fn.__annotations__`, ignored at runtime; `mypy src` + `ValueError` guards enforce | Different — labels, not locks |
+| Overloads `F(int)` / `F(string)` | One `def`; last wins; unions `X \| Y` and defaults | Different — no resolution |
+| `bool` is distinct from `int` | `bool` subclasses `int`: `isinstance(True, int)` is `True` | FALSE FRIEND — branch on `bool` first |
+| XML docs `<param>` / `<returns>` | Docstring `Args:` / `Returns:` / `Raises:` | Same job |
+| `:` means base list (`class D : B`), ctor chain (`: base(x)`), `case:` labels, `?:` | `:` means block headers (`def`/`if`/`for`), slices (`xs[1:3]`), dicts, annotations | Different glyph-sharing — do not transfer habits |
 
 ## 6. When to write them, when to stop
 

@@ -195,6 +195,18 @@ inheritance or composition. If you want marker metadata only, use an
 attribute on the function (`fn.tag = "x"`) or explicit registration,
 not a no-op decorator.
 
+### C# vs Python: attributes are metadata, decorators execute
+
+| C# | Python | Same? |
+|---|---|---|
+| `[Route("path")]` attaches metadata; behavior lives in the framework (routing, test runner) | `@deco` executes at `def`/`class` time: `greet = deco(greet)` | Different — metadata vs executing replacement |
+| Attribute args `[Route("path")]` are constructor args on the attribute | `@retry(times=3)` needs a 3-level factory returning the real decorator | Similar look, different shape (factory) |
+| ASP.NET `ActionFilter` / middleware pipeline stage | Wrapper `def wrapper(*args, **kwargs)` plus `@functools.wraps` | Similar outcome for cross-cutting behavior |
+| `[Serializable]` marker read by the serializer | `@dataclass` rewrites the class (generates `__init__` / `__eq__` / `__repr__`) | Different — marker vs transformation |
+| `[Test]` / `[Fact]` test metadata | `@pytest.mark.*` test metadata | Same job (metadata, not behavior) |
+| Several attributes: they do not nest; filter order comes from an `Order` property, not nesting | Stacked `@a @b` means `a(b(f))`; textual order IS nesting order | Different — order is semantics in Python |
+| Async filter implements an async interface; sync/async mismatch breaks the pipeline | A sync `wrapper` around `async def` returns an un-awaited coroutine — mirror with `async def wrapper` | Parallel pitfall — match wrapper kind to target kind |
+
 ## 7. Edge cases
 
 1. Missing `functools.wraps` breaks introspection: `help()`,

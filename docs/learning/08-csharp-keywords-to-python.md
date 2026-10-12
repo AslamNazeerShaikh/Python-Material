@@ -276,6 +276,32 @@ def outer() -> int:
 Loop leak trap: `for i in ...` after the loop, `i` still exists at
 function scope. Comprehensions do not leak in Python 3.
 
+## 9. Master similarity map (all sections)
+
+One row per keyword in this file. "Same?" separates real matches
+from surface resemblance — re-check here before assuming parity.
+
+| C# | Python (this file) | Same? |
+|---|---|---|
+| `this` (implicit) | `self` explicit first param (§1); `cls` for classmethods | Same job, visible receiver |
+| `static` method | `@staticmethod` (rare) or module function (preferred) (§2) | Different — module function is the idiom |
+| `static` field / singleton state | Class attribute or module constant (§2) | Similar outcome; assignment rules differ (see `11` Case 6) |
+| `static` class | Module with functions (§2) | Similar outcome |
+| Extension method (`static ... (this X x)`) | Plain function or `Protocol` (§2) | Different shape, same call-site job |
+| Value-type copy vs reference-type share | One rule: assignment rebinds, mutation is visible (§3) | Different model — learn the sticky-note rule, not the C# split |
+| `ref` / `out` params | No equivalent — return tuples/dataclasses (§3) | No equivalent |
+| Optional `void F(int x = 3)` (must be compile-time constant) | `def f(x: int = 3)` (any object allowed — hence the mutable-default trap) | Same shape, looser rule, new trap (§5) |
+| Named args `F(x: 1)` | `f(x=1)`; keyword-only after `*`, positional-only before `/` (§5) | Same plus stricter options |
+| `params int[]` | `*args` tuple (§5) | Same job |
+| Overloads | One `def`; last wins; defaults/unions/factories (§5) | Different — no resolution |
+| Constructor (+ `: base()` / `: this()`) | `__new__` + `__init__` (+ `super().__init__()`, `cls` factories) (§4) | Different split, same duties |
+| Destructor `~Class` / `IDisposable` | No equivalent — `__del__` is unpredictable; use `with` / `close()` (§4) | No equivalent |
+| `readonly` (declaration/ctor/`init` writes, runtime-enforced) | `@property` no-setter / frozen dataclass (runtime) vs `Final` (checker-only) (§6) | Partial — only the fences enforce |
+| `const` (compile-time) | `UPPER_SNAKE` (reassignable convention) (§6) | Different — convention only |
+| Block scope (`{ ... }`, `for` locals) | LEGB; loops do NOT scope; functions/classes/comprehensions do (§8) | Different — flatter scope |
+| `static` local function (`static int F()`) | No equivalent — nested `def` always closes over scope (§8) | No equivalent |
+| `is null` / null checks everywhere | `is None`; EAFP `try/except AttributeError` over `None` checks (see `07` §8, `09` §2) | Similar habit, different idiom |
+
 ## Next
 
 - [11-access-modifiers-and-shared-mutation.md](11-access-modifiers-and-shared-mutation.md) — access shapes and shared mutation in detail.

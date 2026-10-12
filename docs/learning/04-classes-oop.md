@@ -30,6 +30,25 @@ class Animal:
 4. Use `self.__class__.__name__` in `__repr__` so subclasses print
    correctly.
 
+### C# vs Python: classes at a glance
+
+| C# | Python | Same? |
+|---|---|---|
+| `class Dog { ... }` plus `new Dog("rex")` | `class Dog:` plus `Dog("rex")` (no `new`) | Similar, minus the keyword |
+| Constructor `public Dog(string n) { ... }` | Two steps: `__new__` allocates (rare), `__init__` configures and must return `None` | Different split; you write `__init__` |
+| `this.name` (implicit receiver) | `self.name` (explicit first param) | Same job, visible receiver |
+| Field declaration `string name;` reserves storage | Annotation `name: str` alone stores nothing; `self.name = ...` in `__init__` creates it | Different — assignment creates |
+| Auto-property `string Name { get; set; }` | Plain public attribute first; `@property` only for validated/derived values | Different default — public attribute wins |
+| `static` method / field / class | `@staticmethod` (rare) / class attribute / module (see `08 §2`) | Different — one keyword splits into three ideas |
+| `class D : B` single base plus interfaces | `class D(B, C)` multiple bases; lookup via `__mro__`; every link calls `super().__init__()` | Different — multiple + MRO |
+| `virtual` / `override` keywords | Virtual-by-default; a typo (`def speek`) silently creates a new method | Different — no keyword, no compiler check |
+| `abstract` class / `interface` | `ABC` + `@abstractmethod` / `typing.Protocol` (structural, no inheritance needed) | Similar outcome via two tools |
+| `sealed` (compiler-enforced) | `@typing.final` (checker-only; runtime ignores it) | Different — advisory only |
+| `record` (built-in value equality) | `@dataclass` (plus `frozen=True`, `eq`) | Similar outcome; instances are still heap objects |
+| `struct` (value type, copied on assign) | No equivalent — nearest is an immutable `tuple` / frozen dataclass, but assignment still binds (never copies) | No equivalent |
+| Constructor/method overloads | Defaults plus `@classmethod` factories; call `cls(...)`, not `ClassName(...)`, for subclass safety | Different |
+| `private` / `protected` / `internal` (enforced) | `x` / `_x` / `__x` (convention + mangling; full map in `11`) | Different — signs, not walls |
+
 ## 2. Method types
 
 ```python

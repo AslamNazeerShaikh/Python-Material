@@ -36,6 +36,19 @@ add = lambda a, b=10: a + b
 call = lambda *args, **kwargs: (args, kwargs)
 ```
 
+### C# vs Python: lambdas, IIFE, closures
+
+| C# | Python | Same? |
+|---|---|---|
+| `x => x * 2` expression lambda | `lambda x: x * 2` | Same for one-liners |
+| Block lambda `(x, y) => { ...; return z; }` | No equivalent — the body is one expression; write `def` | No equivalent |
+| Typed params `(int x) => x * 2`, delegate types `Func<int, int>` | No annotations on `lambda`; traceback name always `<lambda>` | Different — no types, poor tracebacks |
+| Statements allowed in block lambdas | `if` / `for` / `return` / `=` are syntax errors; ternary `a if cond else b` is allowed | Different limits |
+| Recursion via a named method (anonymous self-reference needs a named-delegate trick in both languages) | `lambda` has no self-name — bind to a name or write `def` | Same advice: recursive logic belongs in `def` |
+| IIFE `new Func<int>(() => 1 + 2)()` compiles but is unidiomatic | `(lambda: 1 + 2)()` works but is unidiomatic; `def` plus a call reads better | Similar — possible in both, idiomatic in neither |
+| `for`-loop closure captures the variable (all delegates see the final value; `foreach` was fixed in C# 5) | Late binding too: `[lambda: i for i in range(3)]` gives `[2, 2, 2]`; fix with `lambda i=i: i` or a factory | Same trap; C# fix is a loop-local copy, Python fix is a default-arg snapshot |
+| LINQ key `OrderBy(x => x.Score)` | `sorted(users, key=lambda item: item[1])`; prefer `operator.itemgetter(1)` | Same job |
+
 ## 2. Why it exists, where it fits
 
 Short throwaway keys and adapters: `sorted`, `min`/`max`, `map`,
