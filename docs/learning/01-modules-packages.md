@@ -272,6 +272,23 @@ framework. `pytest` never `import`s your helpers to reuse them — it
 discovers your `test_*` functions and drives them, which is why test
 files follow its naming contract instead of the other way round.
 
+### 8e. Module lifecycle as a state machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Missing : first import starts
+    Missing --> Executing : run top to bottom once
+    Executing --> Cached : stored in sys.modules
+    Cached --> Cached : later imports reuse it
+    Executing --> Main : __name__ is __main__
+    Main --> [*] : script ends
+    Cached --> [*] : interpreter exits
+```
+
+One execution, then cache hits forever. There is no "reload on
+second import" and no per-importer copy — every importer shares the
+single cached module object.
+
 ## Next
 
 - [02-dunder-attributes.md](02-dunder-attributes.md) — the names with

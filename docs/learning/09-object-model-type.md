@@ -69,6 +69,61 @@ Python has no value types. Rows marked FALSE FRIEND need memorizing.
 | `Equals` + `GetHashCode` kept paired | `__eq__` + `__hash__` kept paired (defining `__eq__` sets `__hash__` to `None`) | Same pairing rule |
 | Reflection `typeof(X).GetMembers()` | `dir()`, `obj.__dict__`, `help()` | Same job |
 
+### Everything-is-an-object at a glance
+
+```mermaid
+classDiagram
+    class object {
+        <<root of all types>>
+    }
+    class int {
+        <<immutable>>
+    }
+    class str {
+        <<immutable>>
+    }
+    class list {
+        <<mutable>>
+    }
+    class function {
+        <<callable object>>
+    }
+    class type {
+        <<classes are instances>>
+    }
+    object <|-- int : is-a
+    object <|-- str : is-a
+    object <|-- list : is-a
+    object <|-- function : is-a
+    type <|-- object : metaclass loop
+    note for type "type(int) is type:<br/>classes are objects too"
+```
+
+No primitives corner, no struct corner — one root, one rule. `type`
+closing the loop (classes made by `type`) is why decorators can
+take a class and return a new one.
+
+### Identity vs equality: which question to ask
+
+```mermaid
+flowchart TD
+    Q["compare a and b"]
+    IDQ{"same object?<br/>a is b"}
+    SAME["identical: equal<br/>by definition"]
+    EQ{"__eq__ agrees?<br/>a == b"}
+    EQUAL["equal value,<br/>different objects"]
+    DIFF["not equal"]
+    Q --> IDQ
+    IDQ -->|"yes"| SAME
+    IDQ -->|"no"| EQ
+    EQ -->|"yes"| EQUAL
+    EQ -->|"no"| DIFF
+```
+
+`is` answers the cheap question (one pointer compare); `==`
+answers the expensive one (a method call). `None` checks always
+take the cheap path.
+
 ## 3. Classes are runtime objects
 
 `class` is an executable statement. It builds an object of type

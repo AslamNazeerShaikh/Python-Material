@@ -185,6 +185,41 @@ similarity is real or surface-only.
 | Package version | `<Version>` in `.csproj` | `pyproject.toml` (optionally mirrored as `__version__`) | Same job; Python single-sources it |
 | Wildcard surface | `using` imports namespaces, never names; no `*` | `__all__` lists the names `from m import *` picks up | Different — Python's surface is explicit per module |
 
+### How a dunder call resolves at runtime
+
+```mermaid
+flowchart TD
+    CALL["len(xs) called"]
+    LOOKUP["look up type(xs).__len__<br/>along the MRO"]
+    FOUND{"found?"}
+    RUN["run it, return the result"]
+    MISS["raise TypeError"]
+    CALL --> LOOKUP
+    LOOKUP --> FOUND
+    FOUND -->|"yes"| RUN
+    FOUND -->|"no"| MISS
+```
+
+Every operator and builtin is this picture with different names:
+`xs + ys` consults `__add__`, `for x in xs` consults `__iter__`,
+`with open(...)` consults `__enter__`/`__exit__`. Learn the row in
+the table, then picture this dispatch.
+
+### Module run-mode as a state machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Imported : imported by someone
+    [*] --> Script : run directly
+    Imported --> Cached : top level executes once
+    Script --> Main : __name__ is __main__
+    Main --> Cached : guard calls main()
+    Cached --> [*] : interpreter exits
+```
+
+Same file, two modes. Library behaviour must be identical in both;
+only the guarded `main()` differs — that is the entire contract.
+
 ## Next
 
 - [03-functions-def.md](03-functions-def.md) — signatures and calls.

@@ -120,6 +120,48 @@ class Person(Named, Aged):
         super().__init__(name=name, age=age)
 ```
 
+### The diamond and the merge, drawn
+
+```mermaid
+classDiagram
+    class Top {
+        +__init__()
+    }
+    class Left {
+        +__init__()
+    }
+    class Right {
+        +__init__()
+    }
+    class Bottom {
+        +__init__()
+    }
+    Top <|-- Left : extends
+    Top <|-- Right : extends
+    Left <|-- Bottom : extends
+    Right <|-- Bottom : extends
+    note for Bottom "MRO: Bottom, Left, Right, Top<br/>Top initializes exactly once"
+```
+
+```mermaid
+flowchart TD
+    L1["L(Left) = Left, Top, object"]
+    L2["L(Right) = Right, Top, object"]
+    S1["take Left: in no other tail"]
+    S2["take Right: in no remaining tail"]
+    S3["take Top, then object"]
+    DONE["Bottom, Left, Right, Top, object"]
+    L1 --> S1
+    L2 --> S1
+    S1 --> S2
+    S2 --> S3
+    S3 --> DONE
+```
+
+Depth-first would emit Top right after Left; the merge refuses
+because Top sits in Right's tail. That single refusal is the whole
+difference between C3 and naive traversal.
+
 ## 5. C# vs Python: resolution machinery
 
 | C# | Python | Same? |

@@ -49,6 +49,41 @@ call = lambda *args, **kwargs: (args, kwargs)
 | `for`-loop closure captures the variable (all delegates see the final value; `foreach` was fixed in C# 5) | Late binding too: `[lambda: i for i in range(3)]` gives `[2, 2, 2]`; fix with `lambda i=i: i` or a factory | Same trap; C# fix is a loop-local copy, Python fix is a default-arg snapshot |
 | LINQ key `OrderBy(x => x.Score)` | `sorted(users, key=lambda item: item[1])`; prefer `operator.itemgetter(1)` | Same job |
 
+### lambda or def: the decision tree
+
+```mermaid
+flowchart TD
+    Q1{"one expression?"}
+    Q2{"used once,<br/>under ~80 chars?"}
+    Q3{"needs a name,<br/>types, or docs?"}
+    LAMBDA["lambda one-liner"]
+    DEF["def with name + docstring"]
+    Q1 -->|"no"| DEF
+    Q1 -->|"yes"| Q2
+    Q2 -->|"no"| DEF
+    Q2 -->|"yes"| Q3
+    Q3 -->|"yes"| DEF
+    Q3 -->|"no"| LAMBDA
+```
+
+### Why the loop trap bites: late binding in time order
+
+```mermaid
+sequenceDiagram
+    participant Loop as for i in range(3)
+    participant Cell as shared cell i
+    participant F as lambdas f0 f1 f2
+    participant Call as later f()
+    Loop->>Cell: i = 0, then 1, then 2
+    Loop->>F: create f0 f1 f2 (all read Cell)
+    Call->>Cell: read i — now 2 for everyone
+    Cell-->>Call: 2, 2, 2
+```
+
+Each lambda holds the cell, not a snapshot. `lambda i=i: i` copies
+the current value into a default at creation time — one snapshot
+per lambda instead of one shared cell.
+
 ## 2. Why it exists, where it fits
 
 Short throwaway keys and adapters: `sorted`, `min`/`max`, `map`,

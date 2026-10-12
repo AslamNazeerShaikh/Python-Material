@@ -207,6 +207,40 @@ not a no-op decorator.
 | Several attributes: they do not nest; filter order comes from an `Order` property, not nesting | Stacked `@a @b` means `a(b(f))`; textual order IS nesting order | Different — order is semantics in Python |
 | Async filter implements an async interface; sync/async mismatch breaks the pipeline | A sync `wrapper` around `async def` returns an un-awaited coroutine — mirror with `async def wrapper` | Parallel pitfall — match wrapper kind to target kind |
 
+### What happens at def-time vs call-time
+
+```mermaid
+sequenceDiagram
+    participant Imp as import time
+    participant Def as decorator body
+    participant Call as caller
+    participant Wrap as wrapper
+    participant Fn as wrapped fn
+    Imp->>Def: run body once (cheap setup only)
+    Def-->>Imp: return wrapper
+    Call->>Wrap: call(args)
+    Wrap->>Fn: pre-work, then fn(*args, **kwargs)
+    Fn-->>Wrap: result
+    Wrap-->>Call: post-work, then result
+```
+
+```mermaid
+flowchart TD
+    AT["@retry(times=3) seen at def"]
+    FACT["call the factory<br/>returns the decorate step"]
+    DEC["call decorate(parse)<br/>build wrapper, return it"]
+    REBIND["rebind the name<br/>parse = wrapper"]
+    PERCALL["each later call runs<br/>the wrapper, not the factory"]
+    AT --> FACT
+    FACT --> DEC
+    DEC --> REBIND
+    REBIND --> PERCALL
+```
+
+Two clocks, never mixed: factory/decorator bodies run once at
+import, wrappers run per call. I/O or heavy work in a body taxes
+every import; per-call cost belongs in the wrapper.
+
 ## 7. Edge cases
 
 1. Missing `functools.wraps` breaks introspection: `help()`,

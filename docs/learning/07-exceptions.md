@@ -80,6 +80,48 @@ with open("words.txt", encoding="utf-8") as handle:
 | Custom error | `class NotFoundException : Exception { ... }` (name ends `Exception`) | `class NotFoundError(LookupError): ...` (name ends `Error`, derives `Exception`) |
 | Test the throw | `Assert.Throws<NotFoundException>(() => Get(...));` (xUnit; NUnit similar) | `with pytest.raises(NotFoundError, match=...):` |
 
+### How try/except/else/finally flows
+
+```mermaid
+flowchart TD
+    TRY["run the try body<br/>(minimum lines)"]
+    HIT{"exception raised?"}
+    MATCH{"matches an<br/>except type?"}
+    HANDLE["run that except arm"]
+    ELSE["run the else arm<br/>success path only"]
+    FIN["run finally<br/>always"]
+    PROP["propagate outward<br/>with traceback + chain"]
+    TRY --> HIT
+    HIT -->|"yes"| MATCH
+    HIT -->|"no"| ELSE
+    MATCH -->|"yes"| HANDLE
+    MATCH -->|"no"| PROP
+    HANDLE --> FIN
+    ELSE --> FIN
+    PROP --> FIN
+```
+
+`else` runs only on the no-exception path, `finally` on every path
+— including `return` and unhandled propagation.
+
+### Exception lifecycle as a state machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Raised : raise X(...)
+    Raised --> Chained : raise Y from X
+    Chained --> Handled : matching except
+    Raised --> Handled : matching except
+    Handled --> [*] : recovered
+    Raised --> Uncaught : no match outward
+    Chained --> Uncaught : no match outward
+    Uncaught --> [*] : traceback + nonzero exit
+```
+
+Chaining (`__cause__`) preserves forensics across translation
+layers; an uncaught error is the script-halt path, never a hanging
+state.
+
 ## 3. Built-in hierarchy you must know
 
 ```text

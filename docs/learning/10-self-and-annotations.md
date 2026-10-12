@@ -53,6 +53,48 @@ Full `__init__` behaviour matrix (constructor split, self-less
 shapes, stored vs consumed params, class-level declarations): see
 `04` §8.
 
+### How a method call really dispatches
+
+```mermaid
+sequenceDiagram
+    participant Call as d.speak()
+    participant Bind as bind receiver
+    participant Fn as Dog.speak(d)
+    participant Self as self = d
+    Call->>Bind: look up speak on type(d)
+    Bind->>Fn: found function + instance
+    Fn->>Self: pass d as first arg
+    Self-->>Call: return value
+```
+
+`d.speak` (no call yet) stops after binding: a bound method with
+`d` already tucked in. `Dog.speak` never binds — you supply the
+instance yourself.
+
+### Which colon is this: a dispatcher
+
+```mermaid
+flowchart TD
+    C["a colon in source"]
+    DEF{"after def name<br/>or param?"}
+    ANN["annotation: name: type<br/>or -> return"]
+    BRK{"inside [...]?"}
+    SLICE["slice xs[1:3]"]
+    DCT{"inside {...} pair?"}
+    PAIR["dict entry key: value"]
+    BLK["block header<br/>if/for/def/class"]
+    C --> DEF
+    DEF -->|"yes"| ANN
+    DEF -->|"no"| BRK
+    BRK -->|"yes"| SLICE
+    BRK -->|"no"| DCT
+    DCT -->|"yes"| PAIR
+    DCT -->|"no"| BLK
+```
+
+Position decides meaning — the glyph is shared, the contexts never
+overlap, so read outward from where the colon sits.
+
 ## 2. `self` mistakes and what the error means
 
 Forgetting `self`:

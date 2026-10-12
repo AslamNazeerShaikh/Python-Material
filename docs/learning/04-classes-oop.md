@@ -523,6 +523,51 @@ A runnable program tying all five tools to the four OOP pillars
 lives in `demos/oop_showcase.py` (run it with
 `python3 demos/oop_showcase.py`; demos own all `print()` output).
 
+### Class relationships at a glance
+
+```mermaid
+classDiagram
+    class Animal {
+        +name
+        +speak()
+    }
+    class Dog {
+        +breed
+        +speak()
+    }
+    class Speaker {
+        <<ABC>>
+        +speak()*
+    }
+    class SpeakerP {
+        <<Protocol>>
+        +speak()
+    }
+    Animal <|-- Dog : inherits
+    Speaker <|-- Dog : implements
+    SpeakerP <|.. Dog : satisfies structurally
+    note for Dog "virtual by default:<br/>typo = silent new method"
+```
+
+Solid arrows are inheritance (MRO-ordered), the dotted arrow is
+structural: no base involved, only a matching method shape.
+
+### Object lifecycle as a state machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Allocated : __new__ runs
+    Allocated --> Initialized : __init__ runs
+    Initialized --> Live : reference bound
+    Live --> Live : methods mutate state
+    Live --> Collected : last reference dropped
+    Collected --> [*] : GC reclaims
+```
+
+`__init__` failing discards the half-built object; `__del__` timing
+is unpredictable, so cleanup belongs in `close()` or `with`, never
+in the collector path.
+
 ## Next
 
 - [README.md](README.md) — index.

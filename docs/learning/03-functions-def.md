@@ -62,6 +62,43 @@ Rules: `def` name, parenthesized params, `-> return` hint, colon,
 | `x => x * 2`; block bodies `(x) => { ...; return z; }` allowed | `lambda x: x * 2`; expression-only, no annotations, name always `<lambda>` | Similar for one-liners; different limits |
 | `/// <summary>` + `<param>` / `<returns>` | Docstring `Args:` / `Returns:` / `Raises:` | Same job |
 
+### How a call binds to the signature
+
+```mermaid
+flowchart TD
+    CALL["f(1, 2, 3, c=9, extra='hi')"]
+    POS["fill positional-or-keyword<br/>left to right: a=1, b=2"]
+    ARGS["leftover positionals<br/>pack into *args tuple"]
+    KWONLY["match keyword-only<br/>by name: c=9"]
+    KWARGS["leftover keywords<br/>pack into **kwargs dict"]
+    RUN["run the body"]
+    CALL --> POS
+    POS --> ARGS
+    ARGS --> KWONLY
+    KWONLY --> KWARGS
+    KWARGS --> RUN
+```
+
+Missing required names and unexpected keywords both raise
+`TypeError` before the body starts — binding is all-or-nothing.
+
+### Call lifecycle as a state machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Defined : def executes
+    Defined --> Running : called
+    Running --> Returned : return value
+    Running --> Yielded : yield value
+    Yielded --> Running : next() resumes
+    Running --> Raised : raise or error
+    Returned --> [*] : value to caller
+    Raised --> [*] : traceback to caller
+```
+
+`yield` is the only state that pauses mid-body; everything else
+leaves the frame exactly once.
+
 ## 2. Parameters vs arguments
 
 Parameter is the declaration (`def f(a, b=10)`), argument is the call

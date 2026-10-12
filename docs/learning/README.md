@@ -23,3 +23,28 @@ cases and C# comparisons.
 Conventions used in all files: `src/` layout, pure library code (return
 values, no `print()`), Google-style docstrings, type hints on public
 signatures, `ValueError` guards on public APIs.
+
+## Map
+
+```mermaid
+mindmap
+  root((Python Learning Hub))
+    Foundations
+      00 C# to Python remap
+      01 modules and packages
+      02 dunder attributes
+    Functions
+      03 def signatures
+      05 decorators
+      06 lambda and IIFE
+    Classes
+      04 classes and OOP
+      09 object model
+      10 self and annotations
+      11 access and mutation
+      12 MRO
+    Errors
+      07 exceptions
+    Keywords
+      08 C# keywords map
+```
