@@ -177,6 +177,101 @@ first call (useful for heavy or circular deps). After that it is also
 a cached lookup, so per-call overhead is negligible. Top-level imports
 stay the default for readability.
 
+## 8. module < package < library < framework (the nesting doll)
+
+Human version first: a **module** is one recipe card. A **package**
+is the recipe box holding related cards. A **library** is the whole
+bookshelf you borrow from. A **framework** is the restaurant kitchen:
+you hand it your recipe and IT calls YOU when an order arrives. Each
+level contains the previous one — nothing skips a layer.
+
+```mermaid
+graph TD
+    F["framework: runs YOUR code<br/>(Django, pytest, Flask)"]
+    L["library: code YOU call<br/>(requests, numpy, this repo)"]
+    P["package: folder + __init__.py<br/>(python_material.arrays)"]
+    M["module: one .py file<br/>(second_largest.py)"]
+    F -->|"contains / calls into"| L
+    L -->|"ships as"| P
+    P -->|"holds"| M
+```
+
+### 8a. Each level, plainly
+
+| Level | Is | This repo / stdlib example | Rule |
+|---|---|---|---|
+| Module | One `.py` file; its path is its import name | `second_largest.py`, `math`, `os` | One job per file; docstring + `__all__` on top |
+| Package | Directory with `__init__.py` grouping modules | `python_material/arrays/`, `email`, `logging` | `__init__.py` re-exports the public surface only, never heavy logic |
+| Library | Installable bundle of packages you import and call | This repo (`pip install -e .`), `requests`, `numpy` | Version lives in `pyproject.toml`; you own `main()` |
+| Framework | Library with inversion of control: it owns `main()` and calls your code | `pytest` runs your `test_*`, Django calls your views | You fill the blanks (tests, handlers); it drives |
+
+C# mirror: module ≈ one file's worth of code, package ≈
+namespace/folder, library ≈ NuGet package/assembly, framework ≈
+ASP.NET (hosts your controllers the way Django hosts views).
+
+### 8b. How this repo maps folders to dotted names
+
+```mermaid
+graph LR
+    subgraph disk["on disk"]
+        A["src/python_material/__init__.py"]
+        B["src/python_material/arrays/__init__.py"]
+        C["src/python_material/arrays/second_largest.py"]
+    end
+    subgraph names["import names"]
+        D["python_material"]
+        E["python_material.arrays"]
+        F["python_material.arrays.second_largest"]
+    end
+    A --> D
+    B --> E
+    C --> F
+```
+
+Read it left to right: each `__init__.py` turns its folder into one
+more dotted level, and the file name becomes the final level. That
+is the whole namespace system — no declarations, just layout.
+
+### 8c. What `import` actually does (once, then cached)
+
+```mermaid
+flowchart TD
+    S["import python_material.arrays.second_largest"]
+    Q{"already in sys.modules?"}
+    HIT["reuse cached module<br/>cheap dict lookup + name bind"]
+    RUN["execute the file top to bottom ONCE<br/>defs run, prints would fire"]
+    STORE["store in sys.modules<br/>bind the name locally"]
+    S --> Q
+    Q -->|"yes"| HIT
+    Q -->|"no"| RUN
+    RUN --> STORE
+```
+
+Two consequences you can feel: importing never re-runs the file
+(second import is ~free), and anything at module top level (prints,
+connections) fires exactly once, on first import — which is why
+side effects live behind `if __name__ == "__main__":`, never at top
+level.
+
+### 8d. Library vs framework: who calls whom (the one distinction)
+
+```mermaid
+sequenceDiagram
+    participant You
+    participant Lib as library (requests)
+    You->>Lib: get(url) — you call it
+    Lib-->>You: response — it returns
+    participant FW as framework (pytest)
+    participant Test as your test_*()
+    FW->>Test: run this now — it calls you
+    Test-->>FW: pass/fail — you report back
+```
+
+If you call it, it is a library. If it calls you, it is a
+framework. `pytest` never `import`s your helpers to reuse them — it
+discovers your `test_*` functions and drives them, which is why test
+files follow its naming contract instead of the other way round.
+
 ## Next
 
 - [02-dunder-attributes.md](02-dunder-attributes.md) — the names with
