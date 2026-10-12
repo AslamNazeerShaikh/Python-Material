@@ -544,9 +544,9 @@ classDiagram
         +speak()
     }
     Animal <|-- Dog : inherits
-    Speaker <|-- Dog : implements
     SpeakerP <|.. Dog : satisfies structurally
     note for Dog "virtual by default:<br/>typo = silent new method"
+    note for Speaker "ABC example from section 5:<br/>concrete Speaker subclass would use solid arrow"
 ```
 
 Solid arrows are inheritance (MRO-ordered), the dotted arrow is

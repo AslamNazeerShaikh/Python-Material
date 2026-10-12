@@ -95,8 +95,8 @@ classDiagram
     object <|-- str : is-a
     object <|-- list : is-a
     object <|-- function : is-a
-    type <|-- object : metaclass loop
-    note for type "type(int) is type:<br/>classes are objects too"
+    object <|-- type : type inherits object
+    note for type "object is an instance of type,<br/>type is a subclass of object"
 ```
 
 No primitives corner, no struct corner — one root, one rule. `type`

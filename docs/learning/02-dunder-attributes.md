@@ -213,7 +213,7 @@ stateDiagram-v2
     [*] --> Script : run directly
     Imported --> Cached : top level executes once
     Script --> Main : __name__ is __main__
-    Main --> Cached : guard calls main()
+    Main --> [*] : guarded main() runs, script ends
     Cached --> [*] : interpreter exits
 ```
 

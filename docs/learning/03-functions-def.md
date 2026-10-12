@@ -68,12 +68,14 @@ Rules: `def` name, parenthesized params, `-> return` hint, colon,
 flowchart TD
     CALL["f(1, 2, 3, c=9, extra='hi')"]
     POS["fill positional-or-keyword<br/>left to right: a=1, b=2"]
+    DEF["fill omissions<br/>from defaults: b=10"]
     ARGS["leftover positionals<br/>pack into *args tuple"]
     KWONLY["match keyword-only<br/>by name: c=9"]
     KWARGS["leftover keywords<br/>pack into **kwargs dict"]
     RUN["run the body"]
     CALL --> POS
-    POS --> ARGS
+    POS --> DEF
+    DEF --> ARGS
     ARGS --> KWONLY
     KWONLY --> KWARGS
     KWARGS --> RUN
