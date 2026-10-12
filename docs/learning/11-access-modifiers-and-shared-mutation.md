@@ -33,9 +33,9 @@ class Account:
     """Access shapes on one class."""
 
     def __init__(self, owner: str) -> None:
-        self.owner = owner          # Public attribute.
-        self._balance = 0           # Internal by convention.
-        self.__pin = "0000"         # Mangled to _Account__pin.
+        self.owner = owner  # Public attribute.
+        self._balance = 0  # Internal by convention.
+        self.__pin = "0000"  # Mangled to _Account__pin.
 
     def deposit(self, amount: int) -> None:
         """Public method."""
@@ -54,10 +54,10 @@ class Account:
 
 ```python
 a = Account("amy")
-a.owner       # Fine.
-a._balance    # Works, but you promised not to.
-a._Account__pin          # Works. Mangling is renaming, not locking.
-a._Account__rotate_pin() # Works. No enforcement anywhere.
+a.owner  # Fine.
+a._balance  # Works, but you promised not to.
+a._Account__pin  # Works. Mangling is renaming, not locking.
+a._Account__rotate_pin()  # Works. No enforcement anywhere.
 ```
 
 Human version: `_x` is a "staff only" sign on an unlocked door.
@@ -113,9 +113,9 @@ class Team:
     count = 0  # Class attribute: one copy shared (see Part B §6).
 
     def __init__(self, name: str) -> None:
-        self.name = name      # Public instance attribute.
-        self._tags: list[str] = []   # Internal instance store.
-        self.__token = name   # Mangled instance attribute.
+        self.name = name  # Public instance attribute.
+        self._tags: list[str] = []  # Internal instance store.
+        self.__token = name  # Mangled instance attribute.
 ```
 
 1. Annotation alone stores nothing: `name: str` at class level
@@ -202,7 +202,7 @@ class Child(Base):
         return "child"
 
 
-Child()._Base__hook()   # 'base'. Base.__init__ still found its own hook.
+Child()._Base__hook()  # 'base'. Base.__init__ still found its own hook.
 Child()._Child__hook()  # 'child'. No collision, no override.
 ```
 
@@ -214,10 +214,10 @@ with decorators.
 
 ```python
 a = Account("amy")
-a.__dict__         # {'owner': 'amy', '_balance': 0, '_Account__pin': '0000'}.
-Account.__dict__   # Methods + class attrs. Mangled names appear with prefix.
-dir(a)             # Everything reachable. '__pin' absent; '_Account__pin' present.
-help(Account)      # Human-readable: docstrings, MRO, methods.
+a.__dict__  # {'owner': 'amy', '_balance': 0, '_Account__pin': '0000'}.
+Account.__dict__  # Methods + class attrs. Mangled names appear with prefix.
+dir(a)  # Everything reachable. '__pin' absent; '_Account__pin' present.
+help(Account)  # Human-readable: docstrings, MRO, methods.
 ```
 
 Rules: `is None`, never `== None`. `isinstance(obj, Cls)`, never
@@ -240,12 +240,12 @@ mutable) ink the object every sticky note points at.** `id()` /
 
 ```python
 a = (1, 2)
-b = a          # Same tuple.
-a = a + (3,)   # New tuple. b still (1, 2). No shared mutation.
+b = a  # Same tuple.
+a = a + (3,)  # New tuple. b still (1, 2). No shared mutation.
 
 a = [1, 2]
-b = a          # Same list.
-a.append(3)    # Inks the shared list. b sees [1, 2, 3]. Shared mutation.
+b = a  # Same list.
+a.append(3)  # Inks the shared list. b sees [1, 2, 3]. Shared mutation.
 ```
 
 ### 2. When shared mutation HAPPENS
@@ -254,9 +254,9 @@ a.append(3)    # Inks the shared list. b sees [1, 2, 3]. Shared mutation.
 
 ```python
 xs = [1, 2]
-alias = xs     # One list, two names.
+alias = xs  # One list, two names.
 alias.append(3)
-print(xs)      # [1, 2, 3]. Caller-visible.
+print(xs)  # [1, 2, 3]. Caller-visible.
 ```
 
 Same for `dict`, `set`, `bytearray`, and class instances. `is`
@@ -277,7 +277,7 @@ def mutating(items: list[int]) -> None:
 
 xs = [1]
 rebinding(xs)  # xs still [1]. The parameter sticky note moved; the list did not.
-mutating(xs)   # xs now [1, 9]. The shared list was inked.
+mutating(xs)  # xs now [1, 9]. The shared list was inked.
 ```
 
 Immutable arguments can never show this: `x += 1` on an `int`
@@ -347,8 +347,8 @@ class Cart:
 ```python
 given = [10]
 cart = Cart(given)
-given.append(20)          # Mutates cart._prices — constructor aliased it.
-cart.prices.append(30)    # Mutates cart._prices — getter leaked it.
+given.append(20)  # Mutates cart._prices — constructor aliased it.
+cart.prices.append(30)  # Mutates cart._prices — getter leaked it.
 ```
 
 Fix both ends — defensive copy on the way in and on the way out:
@@ -379,9 +379,9 @@ class Registry:
 
 
 r = Registry()
-r.tags.append("x")   # Inks Registry.tags. Every instance sees 'x'. SHARED.
-r.tags = ["y"]       # Shadows: r.__dict__ gains its own list. Others unaffected.
-Registry.tags = []   # Resets the shared copy for everyone without a shadow.
+r.tags.append("x")  # Inks Registry.tags. Every instance sees 'x'. SHARED.
+r.tags = ["y"]  # Shadows: r.__dict__ gains its own list. Others unaffected.
+Registry.tags = []  # Resets the shared copy for everyone without a shadow.
 ```
 
 Same shape for `@classmethod` state: `cls.count += 1` intentionally

@@ -361,13 +361,13 @@ already-trusted values.
 class Team:
     """Every declaration shape on one class."""
 
-    count = 0        # Class attribute: one copy shared (see 11 Part B Case 6).
-    kind: str        # Bare annotation: stores NOTHING. Docs + mypy only.
+    count = 0  # Class attribute: one copy shared (see 11 Part B Case 6).
+    kind: str  # Bare annotation: stores NOTHING. Docs + mypy only.
     tags: list = []  # Mutable class attribute: shared by all instances. Avoid.
 
     def __init__(self, name: str, seed: int) -> None:
-        self.name = name          # Stored param: per-instance state.
-        self.total = seed * 2     # Consumed param: seed used, never kept.
+        self.name = name  # Stored param: per-instance state.
+        self.total = seed * 2  # Consumed param: seed used, never kept.
 ```
 
 | Shape | Behaviour |
