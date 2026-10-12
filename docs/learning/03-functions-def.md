@@ -204,6 +204,77 @@ Docstring shape (`STYLE_GUIDE §7.1`):
 4. Floating triple-quoted strings are not comments. Multi-line comments
    use `#` lines; docstrings are reserved for the first statement.
 
+## 7. The `pass` placeholder: why, when, how
+
+Why it exists: every Python compound statement (`def`, `class`,
+`if`, `for`, `while`, `try`, `with`, `match`) requires an indented
+suite — an empty body is a `SyntaxError`. C# fills that hole with
+empty braces (`void F() {}`); Python has no braces, so `pass` is the
+null statement: valid syntax that executes to nothing.
+
+```python
+def reserved_name(numbers: list[int]) -> int:
+    """Stub carved during top-down design; body lands next."""
+    pass
+```
+
+How it behaves: `pass` changes nothing. It returns no value (the
+function still yields `None`), breaks no loop, skips nothing. It is
+legal in every suite position:
+
+```python
+class Empty:  # Legal placeholder while the design settles.
+    pass
+```
+
+```python
+for value in range(3):
+    pass  # Intentionally ignore every item (rare; comment why).
+
+try:
+    pass
+except ValueError:
+    pass
+finally:
+    pass
+```
+
+When to use it vs its cousins:
+
+| Tool | Shape | Meaning — reach for it when |
+|---|---|---|
+| `pass` | Statement, valid in any suite | The branch is deliberately empty (`if debug: pass` skeleton, `__exit__` with nothing to release) |
+| `...` (Ellipsis) | Expression, also a valid suite body | The body is not filled in yet — idiom in stubs, `Protocol`, and `ABC` (`def speak(self) -> str: ...`) |
+| Docstring-only body | First-statement string, satisfies the suite | The stub's contract IS the documentation; still returns `None` |
+| `raise NotImplementedError` | Statement, fails loudly | The path is unfinished — tests must fail, not silently get `None` |
+| Bare `return` / `return None` | Explicit exit | The function deliberately yields nothing (clearer than falling off a `pass`) |
+
+C# comparison:
+
+| C# | Python |
+|---|---|
+| `void F() {}` — empty braces | `def f() -> None: pass` — braces do not exist, `pass` fills the suite |
+| `if (x) ;` — empty statement | `if x: pass` |
+| `throw new NotImplementedException();` stub | `raise NotImplementedError` stub — prefer over bare `pass` |
+| `catch (IOException) {}` swallow | `except OSError: pass` — same smell; use `contextlib.suppress(OSError)` or log (see `07` §9) |
+
+Edge cases:
+
+1. Silent-`None` stubs: a bare-`pass` body returns `None`, so callers
+   keep running on garbage and tests can pass vacuously. Unfinished
+   work gets `raise NotImplementedError`, never a naked `pass`.
+2. Swallowing errors: `except ValueError: pass` hides bugs exactly
+   like C# `catch {}`. Catch the narrowest type, and either handle it
+   or say so with `contextlib.suppress`.
+3. `pass` is not an object: `x = ...` binds `Ellipsis`, but
+   `x = pass` is a `SyntaxError`. `pass` can only sit where a
+   statement goes.
+4. Indentation still applies: `pass` must sit inside the indented
+   block. Dedenting it ends the suite like any other statement.
+5. `pass` in `finally` / `else` is legal but pointless — those blocks
+   exist to DO something (cleanup, success path). An empty one should
+   be deleted, not filled.
+
 ## Next
 
 - [04-classes-oop.md](04-classes-oop.md) — methods are functions with

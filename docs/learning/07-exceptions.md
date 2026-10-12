@@ -357,6 +357,9 @@ with contextlib.suppress(FileNotFoundError):
     log()
 ```
 
+For the full why/when/how of `pass` itself (`pass` vs `...` vs
+`raise NotImplementedError`, C# `{}` mapping), see `03` §7.
+
 ## 10. Edge cases
 
 1. Order matters: `except ValueError` before `except Exception`.
