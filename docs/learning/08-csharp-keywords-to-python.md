@@ -131,6 +131,8 @@ with open("words.txt", encoding="utf-8") as handle:
 
 Edge: `__init__` must return `None`. Need to veto creation
 (singleton, cached instance)? Override `__new__`, rarely.
+Behaviour matrix (constructor split, self-less shapes, stored vs
+consumed params, class-level declarations): see `04` §8.
 
 ## 5. Default, optional, skippable parameters
 

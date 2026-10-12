@@ -296,6 +296,107 @@ if __name__ == "__main__":
     main()
 ```
 
+## 8. `__init__` behaviours: constructor? `self`? attributes?
+
+Three questions C# developers keep asking, answered separately
+because each controls a different behaviour.
+
+### 8a. Is `__init__` the constructor? It is the initializer half
+
+Calling `Dog("rex")` runs two steps: `__new__(Dog)` allocates the
+instance, then `__init__(instance, "rex")` configures it. You write
+`__init__` 99% of the time; colloquially "constructor" is fine, but
+mechanically it is step 2 of 2:
+
+| C# `public Dog(string n) {...}` | Python `__new__` | Python `__init__` |
+|---|---|---|
+| Allocates, configures, picks an overload, can veto by throwing | Allocates only; may return an existing/cached instance (the only veto-before-creation point: singletons, caches, immutable bases) | Configures only; must return `None` (anything else is `TypeError`); throwing vetoes use, but allocation already happened |
+| Overloads resolve at compile time | Takes `cls`, not `self` — no instance exists yet | One definition; defaults plus `@classmethod` factories cover overloads |
+| Absent ctor: implicit parameterless one | Rarely overridden | Absent: parent's runs, else `object.__init__` (takes no arguments, so `S(1)` is `TypeError`) |
+
+### 8b. `self` in `__init__`: stored vs consumed vs missing
+
+```python
+class Stored:
+    """Shape 1: stored. Parameter becomes per-instance state."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name  # Lives in the instance __dict__.
+
+
+class Consumed:
+    """Shape 2: consumed. Parameter is a local; nothing persists."""
+
+    def __init__(self, name: str) -> None:
+        print(f"hello {name}")  # Used, then gone. .name raises AttributeError.
+
+
+class Stateless:
+    """Shape 3: stateless. Self present, nothing stored. Valid."""
+
+    def __init__(self) -> None:
+        pass  # Pure-behaviour holder; instances carry no state.
+
+
+class Broken:
+    """Missing self slot. Every instantiation fails."""
+
+    def __init__(name: str) -> None: ...
+
+
+# Broken("x") -> TypeError: __init__() takes 1 positional argument but 2 were given.
+```
+
+The rule: `self.x = v` persists (instance `__dict__`); bare `x = v`
+is a local that dies when `__init__` returns; a missing `self`
+parameter breaks construction because the instance is always passed
+positionally first. `self` also routes through properties:
+`self.radius = r` inside `__init__` runs the setter (validation),
+while `self._radius = r` skips it — use the backing store only for
+already-trusted values.
+
+### 8c. Class-level declarations vs init-only parameters
+
+```python
+class Team:
+    """Every declaration shape on one class."""
+
+    count = 0        # Class attribute: one copy shared (see 11 Part B Case 6).
+    kind: str        # Bare annotation: stores NOTHING. Docs + mypy only.
+    tags: list = []  # Mutable class attribute: shared by all instances. Avoid.
+
+    def __init__(self, name: str, seed: int) -> None:
+        self.name = name          # Stored param: per-instance state.
+        self.total = seed * 2     # Consumed param: seed used, never kept.
+```
+
+| Shape | Behaviour |
+|---|---|
+| Stored param (`self.name = name`) | Per-instance state. The common case. |
+| Consumed param (`self.total = a + b`, `super().__init__(n)`, validate-then-drop, one-shot callback/config) | Used during construction, never kept. The instance shows no trace of the raw input. |
+| Class attribute (`count = 0`, `KIND = "x"`) | One copy on the class. Reads fall back to it, plain writes shadow per-instance, in-place mutation is shared. |
+| Bare annotation (`kind: str`, no value) | Inert in plain classes: `obj.kind` is `AttributeError` until some `self.kind = ...` runs. |
+| Annotation plus mutable value (`tags: list = []`) | A shared mutable class attribute — every instance inks one list. Assign per-instance in `__init__` instead. |
+| Property plus backing store (`@property radius` over `self._radius`) | Validation/derivation on every access. Assigning via `self.radius` in `__init__` runs the setter; assigning `self._radius` bypasses it. |
+| Dataclass annotation (`@dataclass class P: x: int`) | The exception: the decorator turns annotations into real `__init__` params plus assignments, `__eq__`, `__repr__`. |
+| No `__init__` at all | Default `object.__init__` (no arguments). Subclasses inherit the parent signature. |
+
+Edge cases:
+
+1. `__init__` returning a value is `TypeError` (`should return
+   None`). Need a different return shape? Build it in a
+   `@classmethod` factory, not in `__init__`.
+2. Typo'd target (`self.nmae = name`) silently creates a second
+   attribute; `obj.name` is `AttributeError`. Tests own this, nothing
+   else does.
+3. Property order in `__init__`: the setter must run before any read.
+   Reading `self.radius` before anything assigned `self._radius` is
+   `AttributeError`.
+4. Mutable class-level defaults are shared (see `11` Part B Case 3);
+   the dataclass twin needs `field(default_factory=list)`.
+5. A subclass with no `__init__` keeps the parent's full signature —
+   `Kid(1, 2)` works when `Base.__init__` takes `(self, a, b)`.
+
 ## Next
 
 - [README.md](README.md) — index.

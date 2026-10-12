@@ -49,6 +49,10 @@ print(d.speak)  # Bound method. Instance already tucked in.
 | Extension method `M(this Dog d)` | Plain function `loud(dog)` or `Protocol` | Different shape, same call-site job |
 | `this` cannot be rebound (it is not a variable) | Rebinding `self = Box(0)` only moves a local name; mutate (`self.value = 0`) to affect the caller | Different — assignment never crosses (see `11` Part B) |
 
+Full `__init__` behaviour matrix (constructor split, self-less
+shapes, stored vs consumed params, class-level declarations): see
+`04` §8.
+
 ## 2. `self` mistakes and what the error means
 
 Forgetting `self`:
