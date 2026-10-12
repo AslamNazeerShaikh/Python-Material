@@ -209,6 +209,7 @@ class Point:
 ## Next
 
 - [README.md](README.md) — index.
+- [11-access-modifiers-and-shared-mutation.md](11-access-modifiers-and-shared-mutation.md) — access shapes and shared mutation in detail.
 - [08-csharp-keywords-to-python.md](08-csharp-keywords-to-python.md) —
   companion keyword map.
 - [04-classes-oop.md](04-classes-oop.md) — class reference.

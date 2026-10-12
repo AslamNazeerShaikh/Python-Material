@@ -17,6 +17,7 @@ cases and C# comparisons.
 | 8 | C# keywords to Python | [08-csharp-keywords-to-python.md](08-csharp-keywords-to-python.md) | `this`/`static`, passing, defaults, ctors, `readonly`, scope |
 | 9 | Object model and `type()` | [09-object-model-type.md](09-object-model-type.md) | Everything-is-object, `type`/`isinstance`, OOP pillars |
 | 10 | `self`, `:` and `->` | [10-self-and-annotations.md](10-self-and-annotations.md) | Receiver, bound methods, labels-not-locks, edges |
+| 11 | Access modifiers + shared mutation | [11-access-modifiers-and-shared-mutation.md](11-access-modifiers-and-shared-mutation.md) | `public`/`_internal`/`__mangled`, classes/methods/attrs, when mutation is shared |
 
 Conventions used in all files: `src/` layout, pure library code (return
 values, no `print()`), Google-style docstrings, type hints on public

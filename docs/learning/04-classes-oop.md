@@ -280,6 +280,7 @@ if __name__ == "__main__":
 ## Next
 
 - [README.md](README.md) — index.
+- [11-access-modifiers-and-shared-mutation.md](11-access-modifiers-and-shared-mutation.md) — access shapes and shared mutation in detail.
 - [02-dunder-attributes.md](02-dunder-attributes.md) — object protocol.
 - [08-csharp-keywords-to-python.md](08-csharp-keywords-to-python.md) —
   `this`, `static`, passing, defaults, lifetime, scope.

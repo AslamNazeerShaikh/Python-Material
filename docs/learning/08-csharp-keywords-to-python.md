@@ -278,6 +278,7 @@ function scope. Comprehensions do not leak in Python 3.
 
 ## Next
 
+- [11-access-modifiers-and-shared-mutation.md](11-access-modifiers-and-shared-mutation.md) — access shapes and shared mutation in detail.
 - [09-object-model-type.md](09-object-model-type.md) — everything is
   an object, `type()`, introspection.
 - [04-classes-oop.md](04-classes-oop.md) — full class reference.

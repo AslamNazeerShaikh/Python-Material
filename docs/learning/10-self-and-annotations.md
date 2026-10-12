@@ -261,6 +261,7 @@ form. `->` appears only in `def` (lambdas cannot annotate returns).
 ## Next
 
 - [README.md](README.md) — index.
+- [11-access-modifiers-and-shared-mutation.md](11-access-modifiers-and-shared-mutation.md) — access shapes and shared mutation in detail.
 - [08-csharp-keywords-to-python.md](08-csharp-keywords-to-python.md) —
   companion keyword map.
 - [03-functions-def.md](03-functions-def.md) — signature rules.
