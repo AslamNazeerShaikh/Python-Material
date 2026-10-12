@@ -147,11 +147,12 @@ Server dependencies are intentionally NOT installed by the repo
 python3 -m pip install -e ".[api]"
 ```
 
-Serve with reload (or pick menu option `1` in `demos/main.py`,
-which starts the server, opens `/scalar`, and stops it on Enter):
+Two launches, one app object:
 
 ```bash
-python3 -m uvicorn python_material.library.api:app --reload
+python3 demos/main.py  # menu option 1: server + browser, Enter stops
+python3 -m python_material.library.api  # standalone: this shell serves
+python3 -m uvicorn python_material.library.api:app --reload  # same, reload
 ```
 
 Then open `http://127.0.0.1:8000/scalar` (Scalar reference),
@@ -171,6 +172,38 @@ Repository tests (no network, no server, temp files only):
 ```bash
 python3 -m pytest tests/test_library/ -q
 ```
+
+## 6. SOLID in this app (and where each learning doc lives in it)
+
+| Principle | How the app does it | Learning doc |
+|---|---|---|
+| SRP | Routes translate HTTP only; `LibraryService` orchestrates; `repository` holds SQL; `models` hold shapes; `errors` hold failure meanings | `04` §2 (method types), `10` |
+| OCP | `register_author_with_books` and `/stats/*` arrived without touching old routes; new filters extend `list_books` kwargs | `04` §5 (`Protocol` over `ABC`) |
+| LSP | `NotFoundError`/`ConflictError` ARE `ValueError` (old catchers pass); `BookDetailOut`/`AuthorDetailOut` extend `Out` shapes in `response_model` | `04` §4, `09` |
+| ISP | Routes depend on `CatalogReader` vs `CatalogWriter`, never the whole service; both are `@runtime_checkable` (`isinstance` proves it in tests) | `04` §5, `09` §2 |
+| DIP | `LibraryService` receives its connection (never opens one); routes receive the service via `Depends(get_service)`; tests inject temp-DB services | `04` §2 (`cls` factories), `11` |
+
+Learning-concept map (every doc leaves a footprint):
+
+| Doc | Footprint in the app |
+|---|---|
+| `00`–`01` | Package layout IS the namespace; `__all__` + `__version__`; stdlib→third-party→local import groups |
+| `02` | `__all__`, `__init__` configures, `__dict__` wire shaping, `__main__` dual-launch guard, `__version__` |
+| `03` | Hinted signatures, `*rows`/`**payload` equivalents, `None` + guard defaults, `ValueError` boundaries, `Yields` n/a (no generators here) |
+| `04` | Frozen dataclasses, `@property` (`book_count`, `recent_queries`), `@classmethod from_row`, `LibraryError` inheritance, `Protocol` over `ABC` |
+| `05` | `@property`, `@classmethod`, `@runtime_checkable`, stacked route decorators (path + model + status) |
+| `06` | `key=lambda` ranking (`books_per_author`), `max(..., key=...)` argmax |
+| `07` | `NotFound`/`Conflict` hierarchy, `raise ... from` chaining everywhere, explicit raises (no asserts), 404/409/400 mapping |
+| `08` | Explicit `self`, `cls` factories, no statics (module functions), `Final`-free runtime fences, LEGB-safe naming |
+| `09` | `isinstance` guards + protocol checks, `type()`-free dispatch, structural typing |
+| `10` | `self`/`cls` discipline, `X \| None` hints, `->` returns on everything public |
+| `11` | `_conn`/`_recent` private state, `tuple()` snapshots outward, fresh lists per call, no shared class mutables |
+| `12` | Hierarchies kept shallow on purpose (best practice 4); MRO demo lives in `demos/oop_showcase.py` |
+| `13` | `Counter` ranking, `deque(maxlen=)` recent log, `dict`/`list`/`tuple`/`set` in every layer |
+
+Deliberate non-goals (documented, not missing): no metaclasses, no
+`__del__`, no mutable globals, no `print()` outside `demos/`
+(`STYLE_GUIDE` §10–§11 hold for the app too).
 
 ## Next
 
