@@ -19,6 +19,7 @@ cases and C# comparisons.
 | 10 | `self`, `:` and `->` | [10-self-and-annotations.md](10-self-and-annotations.md) | Receiver, bound methods, labels-not-locks, edges |
 | 11 | Access modifiers + shared mutation | [11-access-modifiers-and-shared-mutation.md](11-access-modifiers-and-shared-mutation.md) | `public`/`_internal`/`__mangled`, classes/methods/attrs, when mutation is shared |
 | 12 | Method resolution order | [12-method-resolution-order.md](12-method-resolution-order.md) | C3, `__mro__`, cooperative `super()`, diamonds, edges, practices |
+| 13 | Collections | [13-collections.md](13-collections.md) | `list`/`tuple`/`set`/`dict`, ordering, conversions, `collections` module |
 
 Conventions used in all files: `src/` layout, pure library code (return
 values, no `print()`), Google-style docstrings, type hints on public
