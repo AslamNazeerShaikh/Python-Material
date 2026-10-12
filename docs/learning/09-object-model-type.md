@@ -228,6 +228,8 @@ class Point:
 ## Next
 
 - [README.md](README.md) — index.
+- [12-method-resolution-order.md](12-method-resolution-order.md) — C3,
+  cooperative `super()`, diamonds, edges, practices.
 - [11-access-modifiers-and-shared-mutation.md](11-access-modifiers-and-shared-mutation.md) — access shapes and shared mutation in detail.
 - [08-csharp-keywords-to-python.md](08-csharp-keywords-to-python.md) —
   companion keyword map.

@@ -153,6 +153,8 @@ class D(B, C):
 
 Inspect with `D.__mro__` or `help(D)`. Every class in a cooperative
 chain should call `super().__init__()` so MRO dispatch works.
+Full C3 walkthrough, diamonds, `**kwargs` forwarding, edges, and
+practices live in `12-method-resolution-order.md`.
 
 Edge: method name typos do not error; they create a new method that
 never overrides. Tests catch this, the compiler does not.
@@ -524,6 +526,8 @@ lives in `demos/oop_showcase.py` (run it with
 ## Next
 
 - [README.md](README.md) — index.
+- [12-method-resolution-order.md](12-method-resolution-order.md) — C3,
+  cooperative `super()`, diamonds, edges, practices.
 - [11-access-modifiers-and-shared-mutation.md](11-access-modifiers-and-shared-mutation.md) — access shapes and shared mutation in detail.
 - [02-dunder-attributes.md](02-dunder-attributes.md) — object protocol.
 - [08-csharp-keywords-to-python.md](08-csharp-keywords-to-python.md) —
