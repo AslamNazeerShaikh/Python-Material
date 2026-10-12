@@ -503,9 +503,9 @@ flowchart TD
     OP["operation on a shared name"]
     REB{"rebinding?<br/>=, param =, self ="}
     LOCAL["caller sees NOTHING<br/>only the local note moved"]
-    IMM{"immutable target?<br/>int, str, tuple"]
+    IMM{"immutable target?<br/>int, str, tuple"}
     NEWOBJ["new object made<br/>old aliases untouched"]
-    INPLACE{"in-place on a mutable?<br/>append, attr write"]
+    INPLACE{"in-place on a mutable?<br/>append, attr write"}
     SHARED["caller SEES it<br/>one object inked"]
     OP --> REB
     REB -->|"yes"| LOCAL

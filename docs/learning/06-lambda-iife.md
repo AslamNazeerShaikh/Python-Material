@@ -77,7 +77,7 @@ sequenceDiagram
     Loop->>Cell: i = 0, then 1, then 2
     Loop->>F: create f0 f1 f2 (all read Cell)
     Call->>Cell: read i — now 2 for everyone
-    Cell-->>Call: 2, 2, 2
+    Cell-->>Call: answers 2, 2, 2
 ```
 
 Each lambda holds the cell, not a snapshot. `lambda i=i: i` copies
