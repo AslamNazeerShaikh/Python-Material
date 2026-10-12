@@ -18,6 +18,11 @@ dev = [
   "ruff==0.17.0",
   "mypy==2.4.0",
 ]
+api = [
+  "fastapi",
+  "uvicorn",
+  "scalar-fastapi",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
