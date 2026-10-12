@@ -70,14 +70,14 @@ flowchart TD
 
 ```mermaid
 sequenceDiagram
-    participant Loop as for i in range(3)
-    participant Cell as shared cell i
-    participant F as lambdas f0 f1 f2
-    participant Call as later f()
-    Loop->>Cell: i = 0, then 1, then 2
-    Loop->>F: create f0 f1 f2 (all read Cell)
-    Call->>Cell: read i — now 2 for everyone
-    Cell-->>Call: answers 2, 2, 2
+    participant Driver as the for loop
+    participant Shared as the shared cell
+    participant Fns as the three lambdas
+    participant Late as a later call
+    Driver->>Shared: assign zero, then one, then two
+    Driver->>Fns: create lambdas that read Shared
+    Late->>Shared: read the cell value
+    Shared->>Late: reply with the final value
 ```
 
 Each lambda holds the cell, not a snapshot. `lambda i=i: i` copies
