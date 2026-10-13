@@ -24,22 +24,22 @@ comma (`(1,)`).
 
 ```mermaid
 flowchart TD
-    Q1{"need key lookup<br/>by name or id?"}
-    DICT["dict<br/>or Counter default-dict"]
-    Q2{"duplicates<br/>allowed?"}
-    Q3{"need order<br/>kept?"}
-    SET["set or frozenset"]
-    Q4{"fixed shape<br/>never resized?"}
-    TUPLE["tuple or namedtuple"]
-    LIST["list or deque"]
-    Q1 -->|"yes"| DICT
-    Q1 -->|"no"| Q2
-    Q2 -->|"no"| SET
-    Q2 -->|"yes"| Q3
-    Q3 -->|"no"| SET
-    Q3 -->|"yes"| Q4
-    Q4 -->|"yes"| TUPLE
-    Q4 -->|"no"| LIST
+    Q1[need key lookup]
+    DICT[dict or counter]
+    Q2[duplicates allowed]
+    Q3[need order kept]
+    SET[set or frozenset]
+    Q4[fixed shape kept]
+    TUPLE[tuple or namedtuple]
+    LIST[list or deque]
+    Q1 -->|yes| DICT
+    Q1 -->|no| Q2
+    Q2 -->|no| SET
+    Q2 -->|yes| Q3
+    Q3 -->|no| SET
+    Q3 -->|yes| Q4
+    Q4 -->|yes| TUPLE
+    Q4 -->|no| LIST
 ```
 
 ## 2. Ordering: insertion, deletion, and default sorting
@@ -95,14 +95,21 @@ reorders in place, dicts sort via `sorted(d)` (keys) or
 Entry lifecycle inside a dict, drawn:
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Slotted : d[k] = v
-    Slotted --> Updated : d[k] = v2, slot kept
-    Updated --> Updated : further rewrites
-    Slotted --> Evicted : del, pop, popitem, clear
-    Updated --> Evicted : del, pop, popitem, clear
-    Evicted --> Slotted : re-insert lands at the end
-    Evicted --> [*] : map dropped
+flowchart TD
+    SLOT[first write slots key]
+    UPD[rewrite keeps slot]
+    MORE[further rewrites]
+    OUT[remove by del pop clear]
+    BACK[reinsert lands at end]
+    GONE[map dropped]
+    SLOT --> UPD
+    UPD --> MORE
+    MORE --> UPD
+    SLOT --> OUT
+    UPD --> OUT
+    OUT --> BACK
+    BACK --> SLOT
+    OUT --> GONE
 ```
 
 ## 3. `list` in detail
@@ -355,18 +362,18 @@ auto-vivifies).
 
 ```mermaid
 flowchart LR
-    L["list: ordered, dupes"]
-    T["tuple: ordered, dupes"]
-    S["set: unordered, unique"]
-    D["dict: key order, unique keys"]
-    L -->|"tuple(xs): order kept"| T
-    T -->|"list(t): order kept"| L
-    L -->|"set(xs): dupes die, order lost"| S
-    S -->|"sorted(s): order rebuilt"| L
-    T -->|"set(t): same losses"| S
-    D -->|"list(d): keys only"| L
-    L -->|"dict(pairs): odd items fail"| D
-    S -->|"dict.fromkeys(s): None values"| D
+    L[ordered dupes list]
+    T[ordered dupes tuple]
+    S[unordered unique set]
+    D[key order unique dict]
+    L -->|order kept| T
+    T -->|order kept| L
+    L -->|dupes die| S
+    S -->|sort after| L
+    T -->|same loss| S
+    D -->|keys only| L
+    L -->|from pairs| D
+    S -->|from keys| D
 ```
 
 Loss ledger — read before converting:
@@ -520,18 +527,18 @@ line.rotate(1)  # Right rotation: last becomes first, in place.
 
 ```mermaid
 flowchart TD
-    Q1{"grow or take<br/>at the LEFT?"}
-    DQT["deque<br/>appendleft and popleft are O(1)"]
-    Q2{"bounded tail?<br/>keep last N only"}
-    MAXDQ["deque with maxlen<br/>full? oldest drops off"]
-    Q3{"random middle<br/>access or slicing?"}
-    LST["list<br/>O(1) index, O(n) left ops"]
-    Q1 -->|"often"| DQT
-    Q1 -->|"never"| Q2
-    Q2 -->|"yes"| MAXDQ
-    Q2 -->|"no"| Q3
-    Q3 -->|"yes"| LST
-    Q3 -->|"no"| DQT
+    Q1[left end work]
+    DQT[deque both ends fast]
+    Q2[bounded tail needed]
+    MAXDQ[deque with maxlen]
+    Q3[random middle access]
+    LST[list index fast]
+    Q1 -->|often| DQT
+    Q1 -->|never| Q2
+    Q2 -->|yes| MAXDQ
+    Q2 -->|no| Q3
+    Q3 -->|yes| LST
+    Q3 -->|no| DQT
 ```
 
 Deque edges: `maxlen` discards from the OPPOSITE end on overflow

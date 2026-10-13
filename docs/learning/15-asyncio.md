@@ -37,19 +37,20 @@ actually get (see §7).
 
 ```mermaid
 flowchart TD
-    subgraph CONC["concurrency: one thread, interleaved"]
-        A1["start fetch one"]
-        A2["suspend at await"]
-        A3["start fetch two"]
-        A4["resume one with data"]
-    end
-    subgraph PAR["parallelism: two cores, simultaneous"]
-        B1["core one crunches"]
-        B2["core two crunches"]
-    end
-    A1 --> A2
-    A2 --> A3
-    A3 --> A4
+    CONC[concurrency on one thread]
+    C1[start fetch one]
+    C2[suspend at await]
+    C3[start fetch two]
+    C4[resume one with data]
+    PAR[parallelism on two cores]
+    P1[core one crunches]
+    P2[core two crunches]
+    CONC --> C1
+    C1 --> C2
+    C2 --> C3
+    C3 --> C4
+    PAR --> P1
+    PAR --> P2
 ```
 
 | Workload | Winner | Why |
@@ -73,11 +74,11 @@ sequenceDiagram
     participant One as sleeper one
     participant Two as sleeper two
     Loop->>One: run until await
-    One-->>Loop: sleep a while, suspend
+    One->>Loop: suspend for a while
     Loop->>Two: run until await
-    Two-->>Loop: sleep a while, suspend
-    Loop->>One: timer fired, resume with value
-    Loop->>Two: timer fired, resume with value
+    Two->>Loop: suspend for a while
+    Loop->>One: timer fired resume first
+    Loop->>Two: timer fired resume next
 ```
 
 Entry and identity rules:
@@ -169,17 +170,17 @@ mixed = await asyncio.gather(ok(), boom(), return_exceptions=True)
 
 ```mermaid
 flowchart TD
-    Q{"need all results<br/>together?"}
-    SEQ["sequential awaits<br/>simple, slow, stop-at-first-error"]
-    Q2{"one failure<br/>kills the batch?"}
-    GATHER["gather: concurrent<br/>results in argument order"]
-    TG["TaskGroup: structured<br/>ExceptionGroup on failure"]
-    RETEXC["gather with return_exceptions<br/>errors as values"]
-    Q -->|"no"| SEQ
-    Q -->|"yes"| Q2
-    Q2 -->|"yes"| GATHER
-    Q2 -->|"no, fail fast"| TG
-    Q2 -->|"no, collect errors"| RETEXC
+    Q[need all results together]
+    SEQ[sequential awaits]
+    Q2[one failure kills batch]
+    GATHER[gather concurrent ordered]
+    TG[taskgroup structured failfast]
+    RETEXC[gather collect errors as values]
+    Q -->|no| SEQ
+    Q -->|yes| Q2
+    Q2 -->|yes| GATHER
+    Q2 -->|failfast| TG
+    Q2 -->|collect| RETEXC
 ```
 
 ## 6. Tasks one-by-another WITHOUT `gather`
@@ -306,16 +307,16 @@ async def main() -> None:
 
 ```mermaid
 flowchart TD
-    Q{"what dominates?"}
-    WAITS["many overlapping waits"]
-    CPU["heavy crunching"]
-    BLOCKLIB["blocking third-party lib"]
-    AIO["asyncio tasks<br/>one thread, gather"]
-    PROC["ProcessPoolExecutor<br/>picklable fn, own memory"]
-    THR["to_thread or ThreadPoolExecutor<br/>off-loop workers"]
-    Q -->|"waiting"| WAITS
-    Q -->|"crunching"| CPU
-    Q -->|"blocking lib, no async API"| BLOCKLIB
+    Q[what dominates]
+    WAITS[many overlapping waits]
+    CPU[heavy crunching]
+    BLOCKLIB[blocking lib without async]
+    AIO[asyncio tasks one thread]
+    PROC[process pool own memory]
+    THR[thread pool off loop]
+    Q -->|waiting| WAITS
+    Q -->|crunching| CPU
+    Q -->|blocked| BLOCKLIB
     WAITS --> AIO
     CPU --> PROC
     BLOCKLIB --> THR
@@ -413,10 +414,10 @@ sequenceDiagram
     participant Flag as event flag
     participant Setter as setter task
     Waiter->>Flag: wait while unset
-    Flag-->>Waiter: parked, loop free
-    Setter->>Flag: set the flag
-    Flag-->>Waiter: wake with True
-    Waiter->>Flag: clear to re-arm
+    Flag->>Waiter: parked and loop free
+    Setter->>Flag: set the flag now
+    Flag->>Waiter: wake up with true
+    Waiter->>Flag: clear to rearm
 ```
 
 `asyncio.Queue` (producer/consumer with backpressure):
@@ -439,6 +440,24 @@ async def piped() -> None:
 | `Semaphore(n)` | Same shape, n holders | Rate caps, pool limits, bounded fan-out |
 | `Event` | `wait` / `is_set` vs `set` / `clear` | One-shot or re-armed broadcast signals |
 | `Queue` | `put` / `join` vs `get` / `task_done` | Pipelines with backpressure between stages |
+
+### Lock contention pictured
+
+```mermaid
+flowchart TD
+    T1[task one enters lock]
+    T3[task one awaits inside]
+    T2[task two waits outside]
+    T4[task one exits lock]
+    T5[task two enters lock]
+    T1 --> T3
+    T3 --> T4
+    T2 --> T5
+    T4 --> T5
+```
+
+The lock is held across the `await` inside: task two cannot enter
+until task one exits. That is the whole guarantee, and the whole cost.
 
 ## 10. Builtin catalog (the whole working set)
 

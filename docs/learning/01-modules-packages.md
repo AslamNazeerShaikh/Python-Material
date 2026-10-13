@@ -186,14 +186,14 @@ you hand it your recipe and IT calls YOU when an order arrives. Each
 level contains the previous one — nothing skips a layer.
 
 ```mermaid
-graph TD
-    F["framework: runs YOUR code<br/>(Django, pytest, Flask)"]
-    L["library: code YOU call<br/>(requests, numpy, this repo)"]
-    P["package: folder + __init__.py<br/>(python_material.arrays)"]
-    M["module: one .py file<br/>(second_largest.py)"]
-    F -->|"contains / calls into"| L
-    L -->|"ships as"| P
-    P -->|"holds"| M
+flowchart TD
+    F[framework runs your code]
+    L[library code you call]
+    P[package folder plus init]
+    M[module one py file]
+    F --> L
+    L --> P
+    P --> M
 ```
 
 ### 8a. Each level, plainly
@@ -212,17 +212,13 @@ ASP.NET (hosts your controllers the way Django hosts views).
 ### 8b. How this repo maps folders to dotted names
 
 ```mermaid
-graph LR
-    subgraph disk["on disk"]
-        A["src/python_material/__init__.py"]
-        B["src/python_material/arrays/__init__.py"]
-        C["src/python_material/arrays/second_largest.py"]
-    end
-    subgraph names["import names"]
-        D["python_material"]
-        E["python_material.arrays"]
-        F["python_material.arrays.second_largest"]
-    end
+flowchart LR
+    A[src folder init file]
+    B[arrays folder init file]
+    C[second largest py file]
+    D[dotted package name]
+    E[dotted arrays name]
+    F[dotted module name]
     A --> D
     B --> E
     C --> F
@@ -236,14 +232,14 @@ is the whole namespace system — no declarations, just layout.
 
 ```mermaid
 flowchart TD
-    S["import python_material.arrays.second_largest"]
-    Q{"already in sys.modules?"}
-    HIT["reuse cached module<br/>cheap dict lookup + name bind"]
-    RUN["execute the file top to bottom ONCE<br/>defs run, prints would fire"]
-    STORE["store in sys.modules<br/>bind the name locally"]
+    S[import statement runs]
+    Q[already in sys modules]
+    HIT[reuse cached module]
+    RUN[execute file top to bottom once]
+    STORE[store in sys modules]
     S --> Q
-    Q -->|"yes"| HIT
-    Q -->|"no"| RUN
+    Q -->|yes| HIT
+    Q -->|no| RUN
     RUN --> STORE
 ```
 
@@ -257,14 +253,14 @@ level.
 
 ```mermaid
 sequenceDiagram
-    participant You
-    participant Lib as library (requests)
-    You->>Lib: get(url) — you call it
-    Lib-->>You: response — it returns
-    participant FW as framework (pytest)
-    participant Test as your test_*()
-    FW->>Test: run this now — it calls you
-    Test-->>FW: pass/fail — you report back
+    participant You as caller you
+    participant Lib as library side
+    participant FW as framework side
+    participant Test as your test
+    You->>Lib: call with args
+    Lib->>You: return value
+    FW->>Test: run this now
+    Test->>FW: report result
 ```
 
 If you call it, it is a library. If it calls you, it is a
@@ -275,14 +271,18 @@ files follow its naming contract instead of the other way round.
 ### 8e. Module lifecycle as a state machine
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Missing : first import starts
-    Missing --> Executing : run top to bottom once
-    Executing --> Cached : stored in sys.modules
-    Cached --> Cached : later imports reuse it
-    Executing --> Main : __name__ is __main__
-    Main --> [*] : script ends
-    Cached --> [*] : interpreter exits
+flowchart TD
+    MISS[first import starts]
+    EXEC[run top to bottom once]
+    CACHED[stored in sys modules]
+    MAIN[run as script]
+    DONE[script ends]
+    GONE[interpreter exits]
+    MISS --> EXEC
+    EXEC --> CACHED
+    EXEC --> MAIN
+    MAIN --> DONE
+    CACHED --> GONE
 ```
 
 One execution, then cache hits forever. There is no "reload on

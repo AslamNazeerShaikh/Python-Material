@@ -281,58 +281,52 @@ function scope. Comprehensions do not leak in Python 3.
 ### The eight keyword groups as a mind map
 
 ```mermaid
-mindmap
-  root((C# to Python keywords))
-    this to self
-      explicit receiver
-      cls for classmethods
-    static splits three ways
-      staticmethod or module fn
-      class attribute state
-      module as static class
-    passing
-      assignment, not value or ref
-      rebind is local
-      mutate is visible
-    constructors
-      __new__ allocates
-      __init__ configures
-      no destructor
-    defaults
-      immutable only
-      None plus guard
-      keyword-only marker
-    readonly
-      property fence
-      frozen dataclass
-      Final is advisory
-    mutability
-      names, not boxes
-      shallow shells leak
-    scope
-      LEGB order
-      global and nonlocal
-      loops do not scope
+flowchart TD
+    ROOT[keywords map]
+    A[receiver self]
+    B[static splits]
+    C[passing assigns]
+    D[constructors two steps]
+    E[defaults guarded]
+    F[readonly fences]
+    G[names not boxes]
+    H[scope legb]
+    ROOT --> A
+    ROOT --> B
+    ROOT --> C
+    ROOT --> D
+    ROOT --> E
+    ROOT --> F
+    ROOT --> G
+    ROOT --> H
+    A --> A1[explicit first param]
+    B --> B1[module function first]
+    C --> C1[rebind local mutate shared]
+    D --> D1[new allocs init configures]
+    E --> E1[none plus guard]
+    F --> F1[property frozen final]
+    G --> G1[shallow shells leak]
+    H --> H1[loops do not scope]
 ```
 
 ### LEGB lookup as a flowchart
 
 ```mermaid
 flowchart TD
-    NAME["resolve a name"]
-    L{"Local? fn args,<br/>assignments"}
-    E{"Enclosing?<br/>outer fns"}
-    G{"Global?<br/>module level"}
-    B["Builtin<br/>len, str, ..."]
-    HIT["use it"]
-    MISS["NameError<br/>(UnboundLocalError inside fns)"]
+    NAME[resolve a name]
+    L[local args assigns]
+    E[enclosing outer fns]
+    G[global module level]
+    B[builtin helpers]
+    HIT[use it]
+    MISS[name error raised]
     NAME --> L
-    L -->|"no"| E
-    L -->|"yes"| HIT
-    E -->|"no"| G
-    E -->|"yes"| HIT
-    G -->|"no"| B
-    G -->|"yes"| HIT
+    L -->|no| E
+    L -->|yes| HIT
+    E -->|no| G
+    E -->|yes| HIT
+    G -->|no| B
+    G -->|yes| HIT
     B --> MISS
 ```
 

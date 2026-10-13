@@ -526,47 +526,58 @@ lives in `demos/oop_showcase.py` (run it with
 ### Class relationships at a glance
 
 ```mermaid
-classDiagram
-    class Animal {
-        +name
-        +speak()
-    }
-    class Dog {
-        +breed
-        +speak()
-    }
-    class Speaker {
-        <<ABC>>
-        +speak()*
-    }
-    class SpeakerP {
-        <<Protocol>>
-        +speak()
-    }
-    Animal <|-- Dog : inherits
-    SpeakerP <|.. Dog : satisfies structurally
-    note for Dog "virtual by default:<br/>typo = silent new method"
-    note for Speaker "ABC example from section 5:<br/>concrete Speaker subclass would use solid arrow"
+flowchart TD
+    ANIMAL[animal with speak]
+    DOG[dog overrides speak]
+    SPK[abstract speaker must override]
+    PROTO[protocol any speak matches]
+    ANIMAL -->|inherits| DOG
+    DOG -->|satisfies| PROTO
+    DOG -->|could implement| SPK
 ```
 
-Solid arrows are inheritance (MRO-ordered), the dotted arrow is
+Solid edges are inheritance (MRO-ordered); the protocol edge is
 structural: no base involved, only a matching method shape.
 
 ### Object lifecycle as a state machine
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Allocated : __new__ runs
-    Allocated --> Initialized : __init__ runs
-    Initialized --> Live : reference bound
-    Live --> Live : methods mutate state
-    Live --> Collected : last reference dropped
-    Collected --> [*] : GC reclaims
+flowchart TD
+    ALLOC[new runs alloc]
+    INIT[init configures]
+    LIVE[reference bound live]
+    MUT[methods mutate state]
+    DROP[last reference dropped]
+    GC[collector reclaims]
+    ALLOC --> INIT
+    INIT --> LIVE
+    LIVE --> MUT
+    MUT --> LIVE
+    LIVE --> DROP
+    DROP --> GC
 ```
 
 `__init__` failing discards the half-built object; `__del__` timing
 is unpredictable, so cleanup belongs in `close()` or `with`, never
 in the collector path.
+
+### How a method call resolves
+
+```mermaid
+flowchart TD
+    CALL[call on instance]
+    WALK[walk mro in order]
+    HIT[first match wins]
+    BIND[bind self and run]
+    MISS[attribute error]
+    CALL --> WALK
+    WALK --> HIT
+    HIT -->|found| BIND
+    WALK -->|absent| MISS
+```
+
+One walk, first match, no keywords: a typo walks to a brand-new
+method instead of the intended slot.
 
 ## Next
 

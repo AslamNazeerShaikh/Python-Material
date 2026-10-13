@@ -189,15 +189,15 @@ similarity is real or surface-only.
 
 ```mermaid
 flowchart TD
-    CALL["len(xs) called"]
-    LOOKUP["look up type(xs).__len__<br/>along the MRO"]
-    FOUND{"found?"}
-    RUN["run it, return the result"]
-    MISS["raise TypeError"]
+    CALL[len call runs]
+    LOOKUP[look up dunder on type]
+    FOUND[found on type]
+    RUN[run it return value]
+    MISS[raise type error]
     CALL --> LOOKUP
     LOOKUP --> FOUND
-    FOUND -->|"yes"| RUN
-    FOUND -->|"no"| MISS
+    FOUND -->|yes| RUN
+    FOUND -->|no| MISS
 ```
 
 Every operator and builtin is this picture with different names:
@@ -208,13 +208,16 @@ the table, then picture this dispatch.
 ### Module run-mode as a state machine
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Imported : imported by someone
-    [*] --> Script : run directly
-    Imported --> Cached : top level executes once
-    Script --> Main : __name__ is __main__
-    Main --> [*] : guarded main() runs, script ends
-    Cached --> [*] : interpreter exits
+flowchart TD
+    IMP[imported by someone]
+    SCR[run directly]
+    TOP[top level executes once]
+    MAIN[main guard runs]
+    DONE[cached or finished]
+    IMP --> TOP
+    SCR --> MAIN
+    TOP --> DONE
+    MAIN --> DONE
 ```
 
 Same file, two modes. Library behaviour must be identical in both;

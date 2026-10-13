@@ -123,34 +123,27 @@ class Person(Named, Aged):
 ### The diamond and the merge, drawn
 
 ```mermaid
-classDiagram
-    class Top {
-        +__init__()
-    }
-    class Left {
-        +__init__()
-    }
-    class Right {
-        +__init__()
-    }
-    class Bottom {
-        +__init__()
-    }
-    Top <|-- Left : extends
-    Top <|-- Right : extends
-    Left <|-- Bottom : extends
-    Right <|-- Bottom : extends
-    note for Bottom "MRO: Bottom, Left, Right, Top<br/>Top initializes exactly once"
+flowchart TD
+    TOP[top inits last]
+    LEFT[left inits second]
+    RIGHT[right inits third]
+    BOT[bottom inits first]
+    TOP -->|parent of| LEFT
+    TOP -->|parent of| RIGHT
+    LEFT -->|parent of| BOT
+    RIGHT -->|parent of| BOT
 ```
+
+MRO order: Bottom, Left, Right, Top — Top initializes exactly once.
 
 ```mermaid
 flowchart TD
-    L1["L(Left) = Left, Top, object"]
-    L2["L(Right) = Right, Top, object"]
-    S1["take Left: in no other tail"]
-    S2["take Right: in no remaining tail"]
-    S3["take Top, then object"]
-    DONE["Bottom, Left, Right, Top, object"]
+    L1[left chain known]
+    L2[right chain known]
+    S1[take left first]
+    S2[take right next]
+    S3[take top then object]
+    DONE[bottom left right top object]
     L1 --> S1
     L2 --> S1
     S1 --> S2

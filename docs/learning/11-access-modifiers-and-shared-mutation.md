@@ -500,20 +500,20 @@ the habit.
 
 ```mermaid
 flowchart TD
-    OP["operation on a shared name"]
-    REB{"rebinding?<br/>=, param =, self ="}
-    LOCAL["caller sees NOTHING<br/>only the local note moved"]
-    IMM{"immutable target?<br/>int, str, tuple"}
-    NEWOBJ["new object made<br/>old aliases untouched"]
-    INPLACE{"in-place on a mutable?<br/>append, attr write"}
-    SHARED["caller SEES it<br/>one object inked"]
+    OP[operation on shared name]
+    REB[rebinding move]
+    LOCAL[caller sees nothing]
+    IMM[immutable target]
+    NEWOBJ[new object made]
+    INPLACE[inplace on mutable]
+    SHARED[caller sees it]
     OP --> REB
-    REB -->|"yes"| LOCAL
-    REB -->|"no"| IMM
-    IMM -->|"yes"| NEWOBJ
-    IMM -->|"no"| INPLACE
-    INPLACE -->|"yes"| SHARED
-    INPLACE -->|"no"| NEWOBJ
+    REB -->|yes| LOCAL
+    REB -->|no| IMM
+    IMM -->|yes| NEWOBJ
+    IMM -->|no| INPLACE
+    INPLACE -->|yes| SHARED
+    INPLACE -->|no| NEWOBJ
 ```
 
 Work any example down this tree: `items = [9]` exits at the first
@@ -523,24 +523,29 @@ exits at immutable.
 ### Rebind-vs-mutate landscape
 
 ```mermaid
-quadrantChart
-    title rebind vs mutate, isolated vs shared
-    x-axis pure rebinding --> in-place mutation
-    y-axis isolated per name --> shared across names
-    quadrant-1 mutating, shared
-    quadrant-2 rebinding, shared-looking but safe
-    quadrant-3 rebinding, isolated
-    quadrant-4 mutating, isolated
-    "list.append via alias": [0.9, 0.9]
-    "mutable class attr append": [0.85, 0.95]
-    "tuple holding a list": [0.7, 0.8]
-    "int += in a function": [0.15, 0.15]
-    "param rebind": [0.1, 0.2]
-    "fresh list per call": [0.2, 0.1]
+flowchart TD
+    MUT[mutating ops]
+    REB[rebinding ops]
+    DANGER[shared danger zone]
+    SAFE[safe left side]
+    D1[append via alias]
+    D2[class attr append]
+    D3[tuple holding list]
+    S1[int update in fn]
+    S2[param rebind]
+    S3[fresh list per call]
+    MUT --> DANGER
+    REB --> SAFE
+    DANGER --> D1
+    DANGER --> D2
+    DANGER --> D3
+    SAFE --> S1
+    SAFE --> S2
+    SAFE --> S3
 ```
 
-Top-right is the danger zone (mutation + sharing); everything that
-rebinds lives safely on the left no matter how many names exist.
+The danger branch holds mutation plus sharing; the safe branch holds
+everything that rebinds, no matter how many names exist.
 
 ### 4. Prevention cheat-sheet
 

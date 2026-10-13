@@ -30,24 +30,29 @@ signatures, `ValueError` guards on public APIs.
 ## Map
 
 ```mermaid
-mindmap
-  root((Python Learning Hub))
-    Foundations
-      00 C# to Python remap
-      01 modules and packages
-      02 dunder attributes
-    Functions
-      03 def signatures
-      05 decorators
-      06 lambda and IIFE
-    Classes
-      04 classes and OOP
-      09 object model
-      10 self and annotations
-      11 access and mutation
-      12 MRO
-    Errors
-      07 exceptions
-    Keywords
-      08 C# keywords map
+flowchart TD
+    ROOT[python learning hub]
+    FND[foundations]
+    FN[functions]
+    CLS[classes]
+    ERR[errors]
+    KEY[keywords]
+    ROOT --> FND
+    ROOT --> FN
+    ROOT --> CLS
+    ROOT --> ERR
+    ROOT --> KEY
+    FND --> N00[remap]
+    FND --> N01[modules]
+    FND --> N02[dunders]
+    FN --> N03[signatures]
+    FN --> N05[decorators]
+    FN --> N06[lambda]
+    CLS --> N04[classes]
+    CLS --> N09[object model]
+    CLS --> N10[self]
+    CLS --> N11[access]
+    CLS --> N12[mro]
+    ERR --> N07[exceptions]
+    KEY --> N08[keywords]
 ```

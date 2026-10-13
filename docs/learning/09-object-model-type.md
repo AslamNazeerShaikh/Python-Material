@@ -72,52 +72,40 @@ Python has no value types. Rows marked FALSE FRIEND need memorizing.
 ### Everything-is-an-object at a glance
 
 ```mermaid
-classDiagram
-    class object {
-        <<root of all types>>
-    }
-    class int {
-        <<immutable>>
-    }
-    class str {
-        <<immutable>>
-    }
-    class list {
-        <<mutable>>
-    }
-    class function {
-        <<callable object>>
-    }
-    class type {
-        <<classes are instances>>
-    }
-    object <|-- int : is-a
-    object <|-- str : is-a
-    object <|-- list : is-a
-    object <|-- function : is-a
-    object <|-- type : type inherits object
-    note for type "object is an instance of type,<br/>type is a subclass of object"
+flowchart TD
+    OBJ[object root of all]
+    INT[immutable int]
+    STR[immutable str]
+    LST[mutable list]
+    FN[callable function]
+    TYP[type makes classes]
+    OBJ -->|parent of| INT
+    OBJ -->|parent of| STR
+    OBJ -->|parent of| LST
+    OBJ -->|parent of| FN
+    OBJ -->|parent of| TYP
 ```
 
-No primitives corner, no struct corner — one root, one rule. `type`
-closing the loop (classes made by `type`) is why decorators can
-take a class and return a new one.
+No primitives corner, no struct corner — one root, one rule. The
+loop-closer: `object` is an instance of `type`, while `type`
+subclasses `object` — which is why decorators can take a class and
+return a new one.
 
 ### Identity vs equality: which question to ask
 
 ```mermaid
 flowchart TD
-    Q["compare a and b"]
-    IDQ{"same object?<br/>a is b"}
-    SAME["identical: equal<br/>by definition"]
-    EQ{"__eq__ agrees?<br/>a == b"}
-    EQUAL["equal value,<br/>different objects"]
-    DIFF["not equal"]
+    Q[compare two names]
+    IDQ[same object]
+    SAME[identical so equal]
+    EQ[dunder eq agrees]
+    EQUAL[equal value new object]
+    DIFF[not equal]
     Q --> IDQ
-    IDQ -->|"yes"| SAME
-    IDQ -->|"no"| EQ
-    EQ -->|"yes"| EQUAL
-    EQ -->|"no"| DIFF
+    IDQ -->|yes| SAME
+    IDQ -->|no| EQ
+    EQ -->|yes| EQUAL
+    EQ -->|no| DIFF
 ```
 
 `is` answers the cheap question (one pointer compare); `==`

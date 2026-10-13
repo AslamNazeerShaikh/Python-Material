@@ -13,35 +13,16 @@ Authors write books (1:many), each author holds at most one profile
 carry many genres through a junction table (many:many).
 
 ```mermaid
-erDiagram
-    AUTHORS ||--|| AUTHOR_PROFILES : has
-    AUTHORS ||--o{ BOOKS : writes
-    BOOKS ||--o{ BOOK_GENRES : links
-    GENRES ||--o{ BOOK_GENRES : links
-    AUTHORS {
-        int id PK
-        string name
-        string email UK
-    }
-    AUTHOR_PROFILES {
-        int id PK
-        int author_id UK
-        string bio
-    }
-    BOOKS {
-        int id PK
-        string title
-        int year
-        int author_id FK
-    }
-    GENRES {
-        int id PK
-        string name UK
-    }
-    BOOK_GENRES {
-        int book_id PK
-        int genre_id PK
-    }
+flowchart TD
+    A[authors table]
+    P[profiles table]
+    B[books table]
+    G[genres table]
+    J[junction table]
+    A -->|one to one| P
+    A -->|one to many| B
+    B -->|many via junction| J
+    G -->|many via junction| J
 ```
 
 Enforcement summary: the 1:1 is a UNIQUE foreign key (a second
@@ -98,19 +79,19 @@ Request lifecycle, drawn:
 
 ```mermaid
 flowchart TD
-    REQ["HTTP request with JSON body"]
-    VAL["Pydantic shape check<br/>Field rules reject early"]
-    DB["one connection per request<br/>foreign keys on"]
-    REPO["repository call<br/>single statement or bulk batch"]
-    OK{"integrity holds?"}
-    COMMIT["commit, shape Out schema"]
-    ROLL["rollback, map ValueError<br/>to 400 or 409 or 404"]
+    REQ[http request in]
+    VAL[shape check rejects early]
+    DB[one connection per request]
+    REPO[single or bulk batch]
+    OK[integrity holds]
+    COMMIT[commit shape out]
+    ROLL[rollback map error]
     REQ --> VAL
     VAL --> DB
     DB --> REPO
     REPO --> OK
-    OK -->|"yes"| COMMIT
-    OK -->|"no"| ROLL
+    OK -->|yes| COMMIT
+    OK -->|no| ROLL
 ```
 
 ## 4. Files, database artifacts, and seeding

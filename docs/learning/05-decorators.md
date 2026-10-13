@@ -213,24 +213,24 @@ not a no-op decorator.
 sequenceDiagram
     participant Imp as import time
     participant Def as decorator body
-    participant Call as caller
-    participant Wrap as wrapper
+    participant Call as caller side
+    participant Wrap as wrapper side
     participant Fn as wrapped fn
-    Imp->>Def: run body once (cheap setup only)
-    Def-->>Imp: return wrapper
-    Call->>Wrap: call(args)
-    Wrap->>Fn: pre-work, then fn(*args, **kwargs)
-    Fn-->>Wrap: result
-    Wrap-->>Call: post-work, then result
+    Imp->>Def: run body once
+    Def->>Imp: return wrapper
+    Call->>Wrap: call with args
+    Wrap->>Fn: prework then call
+    Fn->>Wrap: return result
+    Wrap->>Call: postwork then return
 ```
 
 ```mermaid
 flowchart TD
-    AT["@retry(times=3) seen at def"]
-    FACT["call the factory<br/>returns the decorate step"]
-    DEC["call decorate(parse)<br/>build wrapper, return it"]
-    REBIND["rebind the name<br/>parse = wrapper"]
-    PERCALL["each later call runs<br/>the wrapper, not the factory"]
+    AT[decorator seen at def]
+    FACT[factory returns decorator]
+    DEC[decorator builds wrapper]
+    REBIND[rebind name to wrapper]
+    PERCALL[later calls run wrapper]
     AT --> FACT
     FACT --> DEC
     DEC --> REBIND

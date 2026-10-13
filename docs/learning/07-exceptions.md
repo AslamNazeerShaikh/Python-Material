@@ -84,18 +84,18 @@ with open("words.txt", encoding="utf-8") as handle:
 
 ```mermaid
 flowchart TD
-    TRY["run the try body<br/>(minimum lines)"]
-    HIT{"exception raised?"}
-    MATCH{"matches an<br/>except type?"}
-    HANDLE["run that except arm"]
-    ELSE["run the else arm<br/>success path only"]
-    FIN["run finally<br/>always"]
-    PROP["propagate outward<br/>with traceback + chain"]
+    TRY[run try body short]
+    HIT[exception raised]
+    MATCH[matches except type]
+    HANDLE[run that except arm]
+    ELSE[run else success path]
+    FIN[run finally always]
+    PROP[propagate with chain]
     TRY --> HIT
-    HIT -->|"yes"| MATCH
-    HIT -->|"no"| ELSE
-    MATCH -->|"yes"| HANDLE
-    MATCH -->|"no"| PROP
+    HIT -->|yes| MATCH
+    HIT -->|no| ELSE
+    MATCH -->|yes| HANDLE
+    MATCH -->|no| PROP
     HANDLE --> FIN
     ELSE --> FIN
     PROP --> FIN
@@ -107,16 +107,35 @@ flowchart TD
 ### Exception lifecycle as a state machine
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Raised : raise X(...)
-    Raised --> Chained : raise Y from X
-    Chained --> Handled : matching except
-    Raised --> Handled : matching except
-    Handled --> [*] : recovered
-    Raised --> Uncaught : no match outward
-    Chained --> Uncaught : no match outward
-    Uncaught --> [*] : traceback + nonzero exit
+flowchart TD
+    RAISED[raise new error]
+    CHAIN[chain from cause]
+    HANDLED[matching except]
+    FREE[recovered here]
+    OUT[no match outward]
+    GONE[traceback nonzero exit]
+    RAISED --> CHAIN
+    RAISED --> HANDLED
+    CHAIN --> HANDLED
+    CHAIN --> OUT
+    RAISED --> OUT
+    HANDLED --> FREE
+    OUT --> GONE
 ```
+
+### Chained translation pictured
+
+```mermaid
+flowchart TD
+    LOW[low level key error]
+    MID[raise value error from cause]
+    TOP[boundary logs and exits]
+    LOW --> MID
+    MID --> TOP
+```
+
+Each layer translates AND chains: the traceback shows the full road
+from root cause to boundary, never just the last hop.
 
 Chaining (`__cause__`) preserves forensics across translation
 layers; an uncaught error is the script-halt path, never a hanging

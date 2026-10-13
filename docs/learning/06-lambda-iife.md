@@ -53,17 +53,17 @@ call = lambda *args, **kwargs: (args, kwargs)
 
 ```mermaid
 flowchart TD
-    Q1{"one expression?"}
-    Q2{"used once,<br/>under ~80 chars?"}
-    Q3{"needs a name,<br/>types, or docs?"}
-    LAMBDA["lambda one-liner"]
-    DEF["def with name + docstring"]
-    Q1 -->|"no"| DEF
-    Q1 -->|"yes"| Q2
-    Q2 -->|"no"| DEF
-    Q2 -->|"yes"| Q3
-    Q3 -->|"yes"| DEF
-    Q3 -->|"no"| LAMBDA
+    Q1[one expression]
+    Q2[used once short]
+    Q3[needs name types docs]
+    LAMBDA[lambda oneliner]
+    DEF[def with docstring]
+    Q1 -->|no| DEF
+    Q1 -->|yes| Q2
+    Q2 -->|no| DEF
+    Q2 -->|yes| Q3
+    Q3 -->|yes| DEF
+    Q3 -->|no| LAMBDA
 ```
 
 ### Why the loop trap bites: late binding in time order
@@ -74,7 +74,7 @@ sequenceDiagram
     participant Shared as the shared cell
     participant Fns as the three lambdas
     participant Late as a later call
-    Driver->>Shared: assign zero, then one, then two
+    Driver->>Shared: assign zero then one then two
     Driver->>Fns: create lambdas that read Shared
     Late->>Shared: read the cell value
     Shared->>Late: reply with the final value

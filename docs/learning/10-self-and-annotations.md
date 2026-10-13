@@ -57,14 +57,14 @@ shapes, stored vs consumed params, class-level declarations): see
 
 ```mermaid
 sequenceDiagram
-    participant Call as d.speak()
-    participant Bind as bind receiver
-    participant Fn as Dog.speak(d)
-    participant Self as self = d
-    Call->>Bind: look up speak on type(d)
-    Bind->>Fn: found function + instance
-    Fn->>Self: pass d as first arg
-    Self-->>Call: return value
+    participant Call as call site
+    participant Bind as bind step
+    participant Fn as plain function
+    participant Self as self slot
+    Call->>Bind: look up speak on type
+    Bind->>Fn: found function plus instance
+    Fn->>Self: pass instance first
+    Self->>Call: return value
 ```
 
 `d.speak` (no call yet) stops after binding: a bound method with
@@ -75,21 +75,21 @@ instance yourself.
 
 ```mermaid
 flowchart TD
-    C["a colon in source"]
-    DEF{"after def name<br/>or param?"}
-    ANN["annotation: name: type<br/>or -> return"]
-    BRK{"inside [...]?"}
-    SLICE["slice xs[1:3]"]
-    DCT{"inside {...} pair?"}
-    PAIR["dict entry key: value"]
-    BLK["block header<br/>if/for/def/class"]
+    C[colon in source]
+    DEF[after def name or param]
+    ANN[annotation name and return]
+    BRK[inside brackets]
+    SLICE[slice range]
+    DCT[inside braces pair]
+    PAIR[dict entry pair]
+    BLK[block header line]
     C --> DEF
-    DEF -->|"yes"| ANN
-    DEF -->|"no"| BRK
-    BRK -->|"yes"| SLICE
-    BRK -->|"no"| DCT
-    DCT -->|"yes"| PAIR
-    DCT -->|"no"| BLK
+    DEF -->|yes| ANN
+    DEF -->|no| BRK
+    BRK -->|yes| SLICE
+    BRK -->|no| DCT
+    DCT -->|yes| PAIR
+    DCT -->|no| BLK
 ```
 
 Position decides meaning — the glyph is shared, the contexts never

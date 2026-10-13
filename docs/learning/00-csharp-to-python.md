@@ -94,25 +94,31 @@ tables live in the linked files.
 ## 6. Spelling vs behavior: what transfers and what does not
 
 ```mermaid
-quadrantChart
-    title Same spelling vs same behavior
-    x-axis different spelling --> same spelling
-    y-axis different behavior --> same behavior
-    quadrant-1 looks same, acts same
-    quadrant-2 looks different, acts same
-    quadrant-3 looks different, acts different
-    quadrant-4 looks same, acts different
-    "using vs import": [0.7, 0.75]
-    "void vs None": [0.6, 0.7]
-    "IEnumerable vs yield": [0.65, 0.8]
-    "internal vs _name": [0.5, 0.25]
-    "struct vs tuple": [0.45, 0.2]
-    "is (C#) vs is (Python)": [0.95, 0.05]
+flowchart TD
+    SAMELOOK[same spelling]
+    DIFFLOOK[different spelling]
+    SS[safe transfer]
+    SL[false friends]
+    DS[same job new words]
+    DD[no equivalent]
+    P1[safe using import void none]
+    P2[false is struct internal]
+    P3[same yield with]
+    P4[none const refout]
+    SAMELOOK --> SS
+    SAMELOOK --> SL
+    DIFFLOOK --> DS
+    DIFFLOOK --> DD
+    SS --> P1
+    SL --> P2
+    DS --> P3
+    DD --> P4
 ```
 
-Top-right is safe transfer; bottom-right (`is`, `struct`,
-`internal`) is where C# instincts lie — different behavior behind
-familiar spelling.
+Same-spelling branches split into safe transfer (`using`, `void`)
+and false friends (`is`, `struct`, `internal`) — familiar spelling,
+different behavior. Different-spelling branches are honest: same job
+in new words, or no equivalent at all.
 
 ## Next
 

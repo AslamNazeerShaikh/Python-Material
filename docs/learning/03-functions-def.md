@@ -66,13 +66,13 @@ Rules: `def` name, parenthesized params, `-> return` hint, colon,
 
 ```mermaid
 flowchart TD
-    CALL["f(1, 2, 3, c=9, extra='hi')"]
-    POS["fill positional-or-keyword<br/>left to right: a=1, b=2"]
-    DEF["fill omissions<br/>from defaults: b=10"]
-    ARGS["leftover positionals<br/>pack into *args tuple"]
-    KWONLY["match keyword-only<br/>by name: c=9"]
-    KWARGS["leftover keywords<br/>pack into **kwargs dict"]
-    RUN["run the body"]
+    CALL[call with mixed args]
+    POS[fill positional slots left to right]
+    DEF[fill omissions from defaults]
+    ARGS[pack leftover positionals]
+    KWONLY[match keyword only by name]
+    KWARGS[pack leftover keywords]
+    RUN[run the body]
     CALL --> POS
     POS --> DEF
     DEF --> ARGS
@@ -87,15 +87,23 @@ Missing required names and unexpected keywords both raise
 ### Call lifecycle as a state machine
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Defined : def executes
-    Defined --> Running : called
-    Running --> Returned : return value
-    Running --> Yielded : yield value
-    Yielded --> Running : next() resumes
-    Running --> Raised : raise or error
-    Returned --> [*] : value to caller
-    Raised --> [*] : traceback to caller
+flowchart TD
+    DEFN[def executes]
+    RUNN[called and running]
+    RET[return value]
+    YLD[yield value]
+    RESUME[next resumes]
+    RAISE[raise error]
+    OUT[value to caller]
+    TRACE[traceback to caller]
+    DEFN --> RUNN
+    RUNN --> RET
+    RUNN --> YLD
+    YLD --> RESUME
+    RESUME --> RUNN
+    RUNN --> RAISE
+    RET --> OUT
+    RAISE --> TRACE
 ```
 
 `yield` is the only state that pauses mid-body; everything else
