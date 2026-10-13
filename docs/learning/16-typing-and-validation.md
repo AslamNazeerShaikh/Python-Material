@@ -76,7 +76,9 @@ exceptions that turn annotations into machinery: `@dataclass`
 (generates `__init__`), Pydantic (validates, §4), and `Annotated`
 metadata for frameworks. Forward references (a class naming
 itself) need quotes or `from __future__ import annotations` at the
-file top, else `NameError` at `def` time (see `10` §5).
+file top, else `NameError` at `def` time (see `10` §5). Unions,
+aliases, `NewType`, generics, and dataclasses get their own deep
+dive in §7.
 
 ## 3. Checking: `mypy` proves what hints claim
 
@@ -217,6 +219,184 @@ flowchart TD
 6. Run all three nets in order: annotate while writing, `mypy src`
    before committing, validate at every boundary in prod. Skipping
    the middle invites red builds; skipping the last invites 500s.
+
+## 7. Unions, `Optional`, aliases, `NewType`, generics, dataclasses
+
+The working vocabulary behind most real-world hints. Every runtime
+claim below was executed; every checker claim was captured from
+`mypy` output.
+
+### 7a. Unions (`X | Y`) and `Optional` (`X | None`)
+
+```python
+def parse(value: int | str) -> int:
+    """Either type in, one type out: narrow before touching."""
+    if isinstance(value, str):  # Narrows to str here. Checker agrees.
+        return int(value)
+    return value  # Narrows to int here. No cast needed.
+```
+
+`int | str` (3.10+ spelling; legacy `typing.Union[int, str]`)
+means "either, checker-verified at every use". `isinstance` (and
+`match` arms) narrow unions branch by branch — the checker follows
+along, so no casts. `isinstance(x, int | str)` itself works at
+runtime (3.10+, verified). `Optional[int]` is exactly
+`Union[int, None]` (verified equal) — prefer the `| None` spelling
+on modern floors. A lying `Optional` (hint says maybe-`None` but
+code never returns it) forces every caller to guard a ghost: hint
+what you RETURN, not what you fear.
+
+### 7b. Type aliases: names for long types (zero runtime effect)
+
+```python
+from typing import TypeAlias  # Explicit marker for readers + checkers.
+
+UserId = int  # Implicit alias: assignment only, no runtime footprint.
+Scores: TypeAlias = dict[str, int]  # Explicit: same object, honest label.
+```
+
+Aliases never create types: `UserId` IS `int` everywhere, at
+runtime AND to the checker (verified identical). Use them to shorten
+(`Scores` beats `dict[str, int]` repeated ten times) and to name a
+domain concept — but when two concepts must NOT mix (user id vs
+book id), aliases fail silently and `NewType` (§7c) is the tool.
+Recursive shapes (`Json: TypeAlias = dict[str, "Json"]`) need the
+quoted forward reference from `10` §5.
+
+### 7c. `NewType`: cheap nominal safety (verified both sides)
+
+```python
+from typing import NewType
+
+UserId = NewType("UserId", int)  # Distinct static type, int at runtime.
+BookId = NewType("BookId", int)  # A DIFFERENT static type. Same runtime.
+```
+
+Runtime: `UserId(5) == 5` and `type(...) is int` (verified) — the
+call is an identity function, zero cost, zero protection. Static
+(captured `mypy` output): `BookId` where `UserId` is expected is
+`arg-type`, AND a bare `int` where `UserId` is expected is
+`arg-type` too — the subtype flows one way only (a `UserId` works
+as an `int`, never the reverse). That asymmetry is the entire
+value: ids, keys, and codes stop mixing at BUILD time for free.
+Reach for it for any primitive that carries domain meaning; reach
+past it (dataclasses, §7e) when the value needs behaviour.
+
+### 7d. Generics: `TypeVar`, `Generic[T]`, and variance
+
+```python
+from typing import Generic, TypeVar
+
+T = TypeVar("T")  # One placeholder, bound per call site.
+
+
+def first(items: list[T]) -> T:
+    """Generic function: caller fixes T, checker enforces it."""
+    return items[0]  # first([1]) is int; first(["a"]) is str. Verified.
+
+
+class Stack(Generic[T]):
+    """Generic class: one implementation, typed per instantiation."""
+
+    def __init__(self) -> None:
+        self._items: list[T] = []
+
+    def push(self, item: T) -> None:
+        """Store one T (parameter position: contravariant-safe)."""
+        self._items.append(item)
+
+    def pop(self) -> T:
+        """Return one T (return position: covariant-safe)."""
+        return self._items.pop()
+```
+
+Built-in generics need no import (`list[int]`, `dict[str, int]`
+work since 3.9). Variance in one paragraph: `list` is INVARIANT —
+`list[int]` is NOT a `list[object]` (captured `mypy` error, with
+its own note suggesting `Sequence`); read-only `Sequence` is
+COVARIANT, so `Sequence[int]` passes where `Sequence[object]` is
+wanted (verified clean). Rule of thumb: mutable containers stay
+invariant (writes must be exact), read-only views go covariant.
+`ParamSpec` types decorator-style `(*args, **kwargs)` forwarding;
+`TypeVar(bound=...)` caps a placeholder (`T bound to str` accepts
+`str` and subclasses only).
+
+### 7e. Dataclasses: annotations turned into machinery
+
+The one place class-level annotations are NOT inert: `@dataclass`
+reads them and writes `__init__`, `__eq__`, and `__repr__` for you
+(see `04` §6, `11` Part A §4 for the property/frozen ladder).
+
+```python
+from dataclasses import asdict, dataclass, field, replace
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Point:
+    """Immutable point: keyword construction, no dict overhead."""
+
+    x: int
+    tags: list[int] = field(default_factory=list)  # Fresh list per obj.
+
+
+p = Point(x=1)  # kw_only: Point(1) is TypeError. Verified shape.
+asdict(p)  # {"x": 1, "tags": []}: recursive dict view. Verified.
+replace(p, x=2)  # NEW Point(x=2): copy-with-changes. Verified.
+p.x = 9  # FrozenInstanceError. Verified.
+```
+
+Rules that bite: mutable defaults MUST use `field(default_factory)`
+(a bare `[]` is `ValueError` at class creation — the one place the
+mutable-default trap fails LOUDLY); `ClassVar` annotations are
+excluded from fields (shared, like plain class attributes);
+`__post_init__` is where validation lives (`raise ValueError`
+there, never in a bare field); inheritance merges fields base-first
+(defaults still trailing); `slots=True` (3.10+) drops `__dict__`
+for memory; pick `@dataclass(frozen=True)` for value objects,
+`NamedTuple` for tuple-compatible records, Pydantic when input
+needs VALIDATION (§4) — three tools, three jobs:
+
+| Need | Tool | Why not the others |
+|---|---|---|
+| Mutable record + methods | `@dataclass` | NamedTuple frozen-by-nature; Pydantic validates on every write (cost) |
+| Immutable value object | `@dataclass(frozen=True)` | Same, plus hashable when all fields are |
+| Tuple-compatible row (CSV/SQL) | `NamedTuple` | Dataclasses are not tuples (no unpack-compare) |
+| Untrusted input | Pydantic `BaseModel` | Dataclasses never validate (by design) |
+
+### 7f. More: `Self`, `@overload`, `Annotated`
+
+`typing.Self` (3.11+ — gate it on the 3.10 floor) types fluent
+returns without naming the class (`def copy(self) -> Self`),
+staying correct through subclassing where `"ClassName"` strings
+go stale. `@overload` describes C#-style variants to the checker
+(each signature checked at calls, one implementation runs) — the
+implementation still takes unions at runtime. `Annotated[int,
+Field(gt=0)]` hangs framework metadata on hints (FastAPI reads it
+for `Depends`/`Query`); the checker sees `int`, the framework sees
+the extras — one annotation, two audiences.
+
+### Which type tool: the decision tree
+
+```mermaid
+flowchart TD
+    Q[what needs naming]
+    LONG[long type repeated]
+    SAFETY[primitives must not mix]
+    SHAPE[fixed record]
+    DIRTY[untrusted input]
+    ALIAS[plain alias]
+    NEWTYPE[newtype per meaning]
+    DATA[dataclass or namedtuple]
+    PYD[pydantic model]
+    Q --> LONG
+    Q --> SAFETY
+    Q --> SHAPE
+    Q --> DIRTY
+    LONG --> ALIAS
+    SAFETY --> NEWTYPE
+    SHAPE --> DATA
+    DIRTY --> PYD
+```
 
 ## Next
 
