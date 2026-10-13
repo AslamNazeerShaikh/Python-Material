@@ -22,6 +22,7 @@ cases and C# comparisons.
 | 13 | Collections | [13-collections.md](13-collections.md) | `list`/`tuple`/`set`/`dict`, ordering, conversions, `collections` module |
 | 14 | Library CRUD API | [14-library-crud-api.md](14-library-crud-api.md) | SQLite 1:1/1:many/m:m, indexes, single+bulk, FastAPI + Scalar |
 | 15 | Async and asyncio | [15-asyncio.md](15-asyncio.md) | Etymology, loop, gather, tasks, threads, sync primitives, catalog |
+| 16 | Hinting vs checking vs validation | [16-typing-and-validation.md](16-typing-and-validation.md) | Annotations, `mypy`, guards, Pydantic, layer model |
 
 Conventions used in all files: `src/` layout, pure library code (return
 values, no `print()`), Google-style docstrings, type hints on public
