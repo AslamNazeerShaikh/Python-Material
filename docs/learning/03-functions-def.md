@@ -322,6 +322,149 @@ Edge cases:
    exist to DO something (cleanup, success path). An empty one should
    be deleted, not filled.
 
+## 8. `*args` vs `**kwargs` in detail (pack vs unpack)
+
+One glyph, two directions. In `def` they PACK many call values into
+one name; in calls (and displays) they UNPACK one container into
+many values. `*` deals in position (tuples/lists), `**` in names
+(dicts, keys always `str`).
+
+```python
+def grab(*args: int, **kwargs: str) -> tuple[tuple[int, ...], dict[str, str]]:
+    """Pack demo: leftovers arrive bundled, nothing declared per name."""
+    return args, kwargs
+
+
+grab(1, 2, k="v")  # ((1, 2), {"k": "v"}). Pack on entry.
+grab()  # ((), {}). Empty pack is fine, never an error.
+```
+
+```python
+def total(a: int, b: int, c: int) -> int:
+    """Fixed-arity callee for the unpack demos below."""
+    return a + b + c
+
+
+total(*[1, 2, 3])  # Unpack list positionally: total(1, 2, 3).
+total(**{"a": 1, "b": 2, "c": 3})  # Unpack dict by name. Keys str only.
+rows = [[1, 2], [3, 4]]  # Matrix demo for the transpose idiom.
+list(zip(*rows))  # Unpack ROWS as args: [(1, 3), (2, 4)]. Columns out.
+```
+
+Forwarding (the decorator pattern from `05` §4) plus displays:
+
+```python
+def forward(*args: object, **kwargs: object) -> object:
+    """Forward everything untouched: the *args/**kwargs contract."""
+    return target(*args, **kwargs)  # Same stars, opposite direction.
+```
+
+```python
+merged = [*[1], *[2, 3]]  # Star IN displays: [1, 2, 3]. Splice, not nest.
+uniq = {*[1, 1, 2]}  # Set display dedups: {1, 2}.
+both = {**{"a": 1}, **{"b": 2}}  # Double-star merge: later keys win.
+```
+
+Pack/unpack direction picker:
+
+```mermaid
+flowchart TD
+    Q[which side]
+    DEF[def side packs]
+    CALL[call side unpacks]
+    MANY[many values one name]
+    ONE[one container many values]
+    Q --> DEF
+    Q --> CALL
+    DEF --> MANY
+    CALL --> ONE
+```
+
+Edge cases (executed unless noted):
+
+1. Duplicate keywords in a CALL raise: `f(**{"a": 1}, a=2)` and
+   `dict(**{"a": 1}, **{"a": 2})` are both `TypeError` (verified) —
+   but `{**{"a": 1}, **{"a": 2}}` in a DISPLAY keeps the later
+   `{"a": 2}` (verified). Calls bind, displays overwrite.
+2. `**` keys must be `str`: `f(**{1: 2})` is `TypeError`. Non-name
+   keys travel in dicts, never through `**`.
+3. Bare `*` marks keyword-only without packing: `def f(*, tag:
+   str)` forces `tag=` at every call (see §2 kinds table).
+4. `*args` is always a TUPLE (immutable shell, mutable cargo —
+   same shallow rule as `11`); `**kwargs` is always a fresh DICT
+   (mutating it never touches the caller).
+5. `return *xs` is `SyntaxError` (verified) — pack explicitly with
+   `return tuple(xs)` instead.
+6. `*` unpacks LAZY iterables too: `f(*gen)` consumes the generator
+   inline, once. Unpacking a non-iterable (`f(*1)`) is `TypeError`.
+7. Arity still rules: too many/few positionals after unpacking is
+   `TypeError` at bind time, before the body starts (§3 binding).
+8. Keyword-only params have no positional escape hatch: with `*args`
+   present, names after it accept `name=` ONLY (verified shape in
+   §2: `f(1, 2, 3, 4, c=9)`).
+
+## 9. Loops inside call arguments (`my_method(n) for n in items`)
+
+That shape is a generator EXPRESSION: a `for` loop fused with a
+call, evaluated LAZILY, yielding one value per pull. As the SOLE
+argument the parens do double duty (`sum(x * x for x in xs)`); with
+sibling arguments it needs its own parens
+(`sorted((x for x in xs), reverse=True)` — the bare form is
+`SyntaxError`, verified).
+
+```python
+xs = [1, 2, 3]  # Small demo input for every shape below.
+sum(n * n for n in xs)  # Fourteen: squares fused with the sum, no list.
+max(str(n) for n in xs)  # Max over mapped strings, still no list.
+"".join(str(n) for n in xs)  # "123": join consumes the generator.
+any(n > 2 for n in xs)  # True, stops at the FIRST hit (short-circuit).
+[name for name in ["a", "bb"] if len(name) == 1]  # List comp: EAGER list.
+{len(w) for w in ["a", "bb", "a"]}  # Set comp: {1, 2}, deduped eagerly.
+```
+
+Laziness is observable (verified): building the generator runs
+ZERO iterations — side effects wait for consumption. And it is
+ONE-SHOT: after `list(g)` drains it, the second `list(g)` is `[]`.
+
+```python
+seen: list[int] = []  # Witness list proving when work happens.
+gen = (seen.append(n) or n for n in [1, 2])  # Built: seen still [].
+list(gen)  # Consumed now: [1, 2], seen is [1, 2]. Verified pair.
+list(gen)  # Drained: []. Generators never rewind. Verified.
+```
+
+More shapes that compose:
+
+```python
+matrix = [[1, 2], [3, 4]]  # Nested demo input.
+[*row for row in matrix]  # Star INSIDE a comp: [1, 2, 3, 4]. Flatten.
+[y for x in [1, 2] if (y := x * 2)]  # Walrus filter: [2, 4]. 3.8+.
+dict((k, len(k)) for k in ["a", "bb"])  # Genexp of pairs into a map.
+{word: len(word) for word in ["a", "bb"]}  # Dict comp: same, eager.
+```
+
+Genexp vs list-comp picker:
+
+```mermaid
+flowchart TD
+    Q[how is it consumed]
+    ONCE[once left to right]
+    REUSE[reused indexed or sized]
+    GEN[generator no list]
+    LST[list comp eager]
+    Q --> ONCE
+    Q --> REUSE
+    ONCE --> GEN
+    REUSE --> LST
+```
+
+Rules: `sum`/`min`/`max`/`any`/`all`/`join` want the generator
+(O(1) memory, short-circuit kept); reuse, `len()`, indexing, or
+debugging want the list; side-effect loops belong in an explicit
+`for` — a bare genexp nobody consumes does NOTHING (the lazy
+gotcha above, restated once because it bites everyone exactly
+once).
+
 ## Next
 
 - [04-classes-oop.md](04-classes-oop.md) — methods are functions with
