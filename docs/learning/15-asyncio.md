@@ -127,6 +127,10 @@ async def fetch(name: str, delay: float) -> str:
 | When | I/O waits, timers, fan-out/fan-in, servers handling many clients |
 | When NOT | CPU crunching (use processes), single straight-line scripts, blocking calls you cannot make async (wrap with `to_thread`, never call them raw — a raw `time.sleep` freezes EVERY task) |
 
+Deep dives live below: [`async` alone (§13)](#13-the-async-keyword-alone-c-lens),
+[`await` alone (§14)](#14-the-await-keyword-alone-c-lens), how far the
+infection spreads (§15), and exception handling (§16).
+
 ## 5. Batching with `gather` (and the sequential trap)
 
 Three identical sleeps, two spellings, ten-times different clocks
@@ -520,9 +524,188 @@ until task one exits. That is the whole guarantee, and the whole cost.
    are single-loop creatures. Cross threads with `to_thread`,
    queues, or `run_coroutine_threadsafe` — never raw handles.
 
-## Next
+## 13. The `async` keyword alone (C# lens)
 
-- [README.md](README.md) — index.
+`async` does exactly one thing: it turns `def` into a coroutine
+FACTORY. Calling the function runs zero lines of the body — it only
+builds the coroutine object. The body runs when the loop drives it
+(`await`, `gather`, `create_task`, `TaskGroup`, `run()`). Verified:
+a bare call leaves zero side effects behind.
+
+```python
+async def lazy() -> int:
+    """Body waits for a driver; the call itself does nothing."""
+    return 9
+
+
+coro = lazy()  # Nothing ran. No scheduling, no lines, no warning.
+result = await coro  # NOW the body runs to completion.
+```
+
+| C# | Python | Same? |
+|---|---|---|
+| `async Task<T> M()` | `async def m() -> T:` | Same shape: factory of awaitable work |
+| `async void` fire-and-forget (errors crash the process) | No equivalent; nearest is `create_task` without `await`, which logs "never retrieved" instead of crashing | Different failure mode — keep every handle |
+| `static async Task Main` | `asyncio.run(main())` | Same job: one owned entry |
+| `SynchronizationContext` capture / `ConfigureAwait(false)` | No equivalent: no ambient context exists; a coroutine binds to its running loop | No equivalent — one less thing to learn |
+| `async` without `await` warns CS1998, runs synchronously | No warning, also runs synchronously (verified: no interleave) | Same behavior, silent — linters, not the language, flag it |
+| `async` lambdas (`async x => ...`) | No `async lambda` at all: write a nested `async def` | No equivalent |
+
+Where/how/when: mark I/O-bound leaves `async`, keep pure CPU and
+formatting helpers plain `def` (sync islands stay sync), and never
+mark-then-forget — an `async def` nobody schedules is dead code
+with no warning attached.
+
+## 14. The `await` keyword alone (C# lens)
+
+`await` does three things in one glyph: suspend THIS coroutine,
+hand the loop to others, and resume here with the unwrapped value.
+Its operand must be awaitable — `await 1` is `TypeError` (verified).
+Outside `async def` it is `SyntaxError` (verified), exactly like
+C#'s misplaced-`await` compile error.
+
+```python
+task = asyncio.create_task(one())  # Scheduled now, result pending.
+first = await task  # Suspend; resume with the value.
+second = await task  # Tasks cache it: re-awaiting is fine. Verified.
+solo = one()  # Bare coroutine: single-use ticket.
+await solo  # Fine once; awaiting AGAIN is RuntimeError. Verified.
+```
+
+| C# | Python | Same? |
+|---|---|---|
+| `await task` unwraps `Task<T>` to `T` | `await coro` unwraps to `T` | Same |
+| `await` outside `async` fails to compile | `await` outside `async def` is `SyntaxError` | Same |
+| `await foreach` over `IAsyncEnumerable` | `async for` over async iterators | Same job, mirrored spelling |
+| `.GetAwaiter().GetResult()` blocking wait | No equivalent on a running loop (deadlocks by design); bridge at the boundary instead (§15) | Different — blocking the loop is always a bug |
+| `ConfigureAwait` variants | No equivalent | None needed |
+
+Save-then-await is the power move: build several coroutines, wrap
+each in `create_task`, then consume with `gather` (ordered),
+`as_completed` (fastest-first), or manual `await`s. A bare coroutine
+is consumed by its first `await`; a `Task` can be awaited by many.
+
+## 15. How deep the infection goes (function coloring)
+
+Bob Nystrom's rule ("what color is your function", 2015): an async
+value can only be USED by awaiting, awaiting needs `async`, so the
+`async` marker spreads up EVERY layer from the I/O leaf to the
+program entry. C# developers already lived this ("async all the
+way", "async zombies") — Python differs in exactly two places.
+
+```mermaid
+flowchart TD
+    SYNC[plain sync caller]
+    NEED[need async value]
+    GOASYNC[caller must be async]
+    CHAIN[every layer above too]
+    ENTRY[until run task or loop]
+    SYNC --> NEED
+    NEED --> GOASYNC
+    GOASYNC --> CHAIN
+    CHAIN --> ENTRY
+```
+
+Depth answer: there is no depth LIMIT — the chain runs from the
+leaf that waits all the way to `asyncio.run()`, a `Task`, or an
+explicit loop driver. It stops only at a BRIDGE:
+
+```mermaid
+flowchart TD
+    DIR[which direction]
+    A2S[async needs sync code]
+    S2A[sync needs async value]
+    T2L[other thread needs loop]
+    TOTHREAD[to thread worker]
+    RUN[asyncio run top only]
+    SAFE[run coroutine threadsafe]
+    DIR --> A2S
+    DIR --> S2A
+    DIR --> T2L
+    A2S --> TOTHREAD
+    S2A --> RUN
+    T2L --> SAFE
+```
+
+| Crossing | Tool | Rule |
+|---|---|---|
+| Async calls sync code | `await asyncio.to_thread(fn)` | Worker thread, result awaited; leaf stays sync |
+| Sync needs an async value | `asyncio.run(main())` | Top-level entry ONLY; nesting it is `RuntimeError` (verified) |
+| Foreign thread drives the loop | `asyncio.run_coroutine_threadsafe(coro, loop)` | Returns a concurrent Future; never touch loop objects raw |
+
+C# differences that matter: C# `async void` lets fire-and-forget
+leak (and crash); Python forces a handle with warnings attached.
+C# sync-over-async (`.Result`) deadlocks against a captured
+context; Python has no `.Result` — the same sin fails LOUDLY as
+nested-`run()` instead of hanging. Design advice both ways: keep
+sync islands pure (CPU, formatting, parsing), push ALL waiting to
+the async edges, and never let a bridge sit mid-chain.
+
+## 16. Exception handling with async (edges + practices)
+
+Ordinary exceptions travel THROUGH `await`: the traceback crosses
+the suspension point intact, so `try` around an `await` catches
+exactly like sync code.
+
+```python
+async def guarded() -> str:
+    """One try owns the whole wait, like sync code would."""
+    try:
+        return await flaky()
+    except ValueError as exc:
+        raise RuntimeError("fetch failed") from exc  # Chain kept. See 07.
+```
+
+The three async-only shapes (all verified):
+
+1. `CancelledError` inherits `BaseException`, NOT `Exception` — a
+   bare `except Exception` will not catch it, by design. Catch it
+   only to clean up, then re-raise so cancellation propagates.
+2. `TaskGroup` failures arrive as ONE `ExceptionGroup`; branch with
+   `except* ValueError` (3.11+ only — repo floor is 3.10, gate it).
+3. `gather` default: first error wins, siblings cancelled. With
+   `return_exceptions=True`, errors (including a child's
+   `CancelledError`, verified) arrive as VALUES — downstream must
+   `isinstance`-branch or failures flow silently as data.
+
+```mermaid
+flowchart TD
+    KID[child raises]
+    HOW[how was it launched]
+    GDEF[gather default first wins]
+    GRET[gather collect errors]
+    TGRP[taskgroup group error]
+    SHLD[shield protects inner]
+    KID --> HOW
+    HOW -->|gather| GDEF
+    HOW -->|gather collect| GRET
+    HOW -->|taskgroup| TGRP
+    HOW -->|shielded| SHLD
+```
+
+Edges experts hit:
+
+1. Un-awaited failure: a `Task` that dies with nobody awaiting logs
+   "Task exception was never retrieved" (verified) — keep every
+   handle, or use `TaskGroup` to end the class.
+2. `timeout()` raises OUTSIDE its `async with` block (verified);
+   catching inside sees `CancelledError`, not control.
+3. `shield()` saves the INNER work while the OUTER waiter takes
+   the `CancelledError` (verified) — use for commits and releases.
+4. `wait_for` on 3.11+ raises builtin `TimeoutError`; older Pythons
+   raise `asyncio.TimeoutError` (distinct type — catch compatibly).
+5. `as_completed` yields futures: `await` each or ITS exception
+   surfaces at YOUR await, far from the child.
+6. `except*` needs 3.11+; on 3.10 catch `ExceptionGroup` via
+   `except BaseException` gymnastics or lift the floor.
+
+Best practices: one `try` per wait (narrow, like sync); `raise ...
+from` across translation layers (07); `finally` for lock/semaphore
+release (or `async with`, better); re-raise `CancelledError` after
+cleanup, always; collect-then-branch under `return_exceptions`;
+`TaskGroup` over manual handle-juggling for structured fan-out.
+
+## Next
 - [03-functions-def.md](03-functions-def.md) — `def` vs `async def`.
 - [06-lambda-iife.md](06-lambda-iife.md) — key functions, closures.
 - [07-exceptions.md](07-exceptions.md) — `CancelledError`,
