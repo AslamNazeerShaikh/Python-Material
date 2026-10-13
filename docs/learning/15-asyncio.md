@@ -70,15 +70,15 @@ other's `await` points.
 
 ```mermaid
 sequenceDiagram
-    participant Loop as event loop
+    participant Scheduler as event loop
     participant One as sleeper one
     participant Two as sleeper two
-    Loop->>One: run until await
-    One->>Loop: suspend for a while
-    Loop->>Two: run until await
-    Two->>Loop: suspend for a while
-    Loop->>One: timer fired resume first
-    Loop->>Two: timer fired resume next
+    Scheduler->>One: run until await
+    One->>Scheduler: suspend for a while
+    Scheduler->>Two: run until await
+    Two->>Scheduler: suspend for a while
+    Scheduler->>One: timer fired resume first
+    Scheduler->>Two: timer fired resume next
 ```
 
 Entry and identity rules:
@@ -414,7 +414,7 @@ sequenceDiagram
     participant Flag as event flag
     participant Setter as setter task
     Waiter->>Flag: wait while unset
-    Flag->>Waiter: parked and loop free
+    Flag->>Waiter: parked and idle
     Setter->>Flag: set the flag now
     Flag->>Waiter: wake up with true
     Waiter->>Flag: clear to rearm
