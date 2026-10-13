@@ -21,6 +21,7 @@ cases and C# comparisons.
 | 12 | Method resolution order | [12-method-resolution-order.md](12-method-resolution-order.md) | C3, `__mro__`, cooperative `super()`, diamonds, edges, practices |
 | 13 | Collections | [13-collections.md](13-collections.md) | `list`/`tuple`/`set`/`dict`, ordering, conversions, `collections` module |
 | 14 | Library CRUD API | [14-library-crud-api.md](14-library-crud-api.md) | SQLite 1:1/1:many/m:m, indexes, single+bulk, FastAPI + Scalar |
+| 15 | Async and asyncio | [15-asyncio.md](15-asyncio.md) | Etymology, loop, gather, tasks, threads, sync primitives, catalog |
 
 Conventions used in all files: `src/` layout, pure library code (return
 values, no `print()`), Google-style docstrings, type hints on public
