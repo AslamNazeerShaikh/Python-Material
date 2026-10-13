@@ -465,6 +465,150 @@ debugging want the list; side-effect loops belong in an explicit
 gotcha above, restated once because it bites everyone exactly
 once).
 
+## 10. Memoization: by hand, then `@lru_cache`
+
+### What it is
+
+Memoization (from "memorandum": a reminder note) stores past
+answers keyed by arguments — same inputs return the stored output
+with zero recompute. It trades memory for time and is valid ONLY
+when same-inputs-always-mean-same-output (pure functions; the rule
+lands below).
+
+### By hand, and what hand-rolling costs
+
+```python
+_cache: dict[int, int] = {}  # Hand cache: module-level, hand-managed.
+
+
+def fib(n: int) -> int:
+    """Fib with a hand cache (the manual pattern, warts and all)."""
+    if n in _cache:  # Hit path, handwritten for every function.
+        return _cache[n]
+    value = n if n < 2 else fib(n - 1) + fib(n - 2)  # Miss: compute.
+    _cache[n] = value  # Stored forever: no eviction, no bound, no stats.
+    return value
+```
+
+`fib(10)` raw: 177 calls. Cached: 11 (both verified). Hand costs,
+per function: key plumbing, unbounded growth, zero stats, no
+eviction story, and caching logic interleaved with real logic (an
+SRP violation — see the SOLID table).
+
+### The clean fix: `@lru_cache`
+
+```python
+import functools
+
+
+@functools.lru_cache(maxsize=None)
+def cfib(n: int) -> int:
+    """Cached fib: the decorator owns storage, eviction, and stats."""
+    return n if n < 2 else cfib(n - 1) + cfib(n - 2)  # Eleven calls. Verified.
+```
+
+`@functools.cache` (3.9+) is the simpler unbounded spelling —
+prefer it over `maxsize=None` when no bound is wanted. Either way
+the body never mentions caching again.
+
+Lookup flow, drawn:
+
+```mermaid
+flowchart TD
+    CALL[call with args]
+    KEY[build key]
+    HIT[key stored]
+    MISS[key absent]
+    RET[return stored]
+    RUN[run body store result]
+    FULL[cache full]
+    EVICT[evict least recent]
+    CALL --> KEY
+    KEY --> HIT
+    KEY --> MISS
+    HIT --> RET
+    MISS --> FULL
+    FULL -->|no| RUN
+    FULL -->|yes| EVICT
+    EVICT --> RUN
+    RUN --> RET
+```
+
+### What is in the cache: reading `cache_info`
+
+```python
+f = functools.lru_cache(maxsize=2)(lambda x: x)  # Tiny bounded demo.
+f(1)
+f(2)
+f(1)  # Hit: seen before.
+f(3)  # Miss plus eviction: oldest entry dropped to hold two.
+f.cache_info()  # Hits one, misses three, size two. Verified values.
+f.cache_clear()  # Reset to empty. Verified.
+f.cache_parameters()  # Settings back: maxsize and typed. Verified.
+```
+
+`CacheInfo(hits, misses, maxsize, currsize)` is the whole
+dashboard: warm-up means calling until misses flatten, and a cache
+whose `currsize` sits at `maxsize` with climbing misses is
+thrashing (raise the bound or narrow the key space). Filling is
+just calling — there is no preload API because normal calls ARE
+the fill.
+
+### Is it worth it, and the three rules
+
+Should-I-cache picker:
+
+```mermaid
+flowchart TD
+    Q[pure function]
+    WORTH[expensive repeats]
+    HASH[hashable args]
+    BOUND[bounded key space]
+    NOPE[do not cache]
+    GO[cache it]
+    Q -->|no| NOPE
+    Q -->|yes| WORTH
+    WORTH -->|no| NOPE
+    WORTH -->|yes| HASH
+    HASH -->|no| NOPE
+    HASH -->|yes| BOUND
+    BOUND -->|no| NOPE
+    BOUND -->|yes| GO
+```
+
+1. PURE ONLY: same args, same result, no clock/random/global
+   reads. A counter-backed function returns STALE ones forever
+   after the first call (verified) — staleness is silent, so purity
+   is a precondition, not a suggestion.
+2. HASHABLE INPUTS: unhashable args (`f([1])`) are `TypeError`
+   (verified). Convert at the boundary (list to tuple) or cache a
+   thin wrapper with hashable params instead.
+3. A LIMIT (or a reason for none): `maxsize` bounds memory with
+   LRU eviction; `None`/bare `cache` grows FOREVER — fine for
+   bounded domains (opcodes, weekdays), a leak for open-ended keys
+   (user ids, URLs, timestamps).
+4. Methods pin instances: `self` is part of the key AND held by the
+   cache, so the object survives `del` until `cache_clear`
+   (verified True-then-False via weakref). Cache module functions
+   over data, or clear deliberately — never decorate methods
+   casually.
+5. `typed` separates types: default already stores `1` and `1.0`
+   apart (verified miss); `typed=True` separates ALL types
+   explicitly (verified three entries for int/float/bool). Moral:
+   never rely on cross-type sharing — normalize arg types first.
+6. Threads: `lru_cache` is thread-safe (documented internal lock);
+   hand-rolled dict caches are not — another hand cost.
+
+### How caching meets SOLID
+
+| Letter | Caching done right |
+|---|---|
+| S — one reason to change | The decorator OWNS caching; the body owns logic. Hand-mixed caches give the function two jobs. |
+| O — open for extension | Add/remove `@lru_cache` (or swap bounds) with ZERO body edits. |
+| L — substitutable | Cached fn honors the plain contract (same signature, same values) — purity is the LSP precondition. |
+| I — small surfaces | Callers depend on the call signature alone; `cache_info`/`clear` are opt-in extras, never required. |
+| D — depend on abstractions | Callers use the function interface; cached vs plain is a deployment detail, swappable per environment. |
+
 ## Next
 
 - [04-classes-oop.md](04-classes-oop.md) — methods are functions with
